@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Umbra sample report</title>
+<style>
+  :root { --bg: #ffffff; --fg: #111111; --muted: #555555; --line: #cccccc; --err: #b00020; --top: #e9f7ec; --bottom: #fdeaea; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #161616; --fg: #eeeeee; --muted: #aaaaaa; --line: #444444; --err: #ff6b81; --top: #1d3524; --bottom: #3a1f22; color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg: #161616; --fg: #eeeeee; --muted: #aaaaaa; --line: #444444; --err: #ff6b81; --top: #1d3524; --bottom: #3a1f22; color-scheme: dark; }
+  body { background: var(--bg); color: var(--fg); font-family: Arial, Helvetica, sans-serif; font-size: 16px; line-height: 1.5; max-width: 1100px; margin: 0 auto; padding: 16px; }
+  h1 { margin-bottom: 0; }
+  .sub { color: var(--muted); margin-top: 4px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid var(--line); padding: 4px; text-align: left; vertical-align: top; }
+  input, select, button { font-size: 15px; padding: 4px; }
+  input[type=number] { width: 90px; }
+  input.desc { width: 100%; min-width: 220px; box-sizing: border-box; }
+  input.hook, input.cname, input.cta { width: 120px; }
+  .wrap { overflow-x: auto; }
+  .buttons { margin: 12px 0; }
+  .buttons button { margin-right: 8px; }
+  #analyze { font-weight: bold; padding: 8px 20px; }
+  #results { margin-top: 24px; }
+  .box { border: 1px solid var(--line); padding: 12px 16px; margin-bottom: 16px; }
+  .note { color: var(--muted); font-size: 14px; }
+  .error { color: var(--err); font-weight: bold; }
+  #creatives.compact .opt { display: none; }
+  .top { background: var(--top); }
+  .bottom { background: var(--bottom); }
+  .short { border-width: 2px; font-size: 17px; }
+  .stale { border: 2px solid var(--err); padding: 8px 12px; margin: 12px 0; }
+  .reportbar button { margin-right: 8px; }
+  #backbtn, body.reportmode #openreport { display: none; }
+  body.reportmode #backbtn { display: inline-block; }
+  body.reportmode #editor, body.reportmode #intro, body.reportmode #nav { display: none; }
+  #library, body.libmode #editor, body.libmode #results { display: none; }
+  body.libmode #library { display: block; }
+  #nav { margin: 8px 0 16px; }
+  #nav button:disabled { font-weight: bold; opacity: 1; }
+  summary { cursor: pointer; font-weight: bold; }
+  @media print {
+    :root, :root[data-theme="dark"] { --bg: #ffffff; --fg: #000000; --muted: #444444; --line: #999999; --top: #e9f7ec; --bottom: #fdeaea; color-scheme: light; }
+    body { max-width: none; padding: 0; font-size: 12px; }
+    #editor, #intro, #nav, body:not(.printcompare) #library, body.printcompare #library > :not(#compareout), body.printcompare #results, .noprint, #aibox:not(.hasout), #aikeyrow, #aibox button { display: none !important; }
+    .box { break-inside: avoid; }
+    .wrap { overflow: visible; }
+    table { font-size: 10px; }
+    table .note { font-size: inherit; }
+    tr { break-inside: avoid; }
+    .top, .bottom { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<p class="noprint"><a href="index.html">&larr; Umbra home</a></p>
+<div class="box noprint"><b>This is a sample report built from 8 made-up creatives.</b> <a href="app.html">Try Umbra with your own results</a>. It is free and your data stays in your browser.</div>
+<div id="results"><h2 id="reporttitle">Sample: skincare launch (made-up data): creative report</h2><p class="note">October 10, 2026 · 8 creatives · ranked by cost per conversion</p><div class="box short"><b>The short answer:</b> Across 8 creatives ranked by cost per conversion, the clearest difference is that creatives with a "result first" hook did better (typical $8.26 with it, $59.03 without). This is a hint, not a rule: only 2 creatives with it and 6 without, so luck could explain it. 4 more patterns are listed below.</div><div class="box"><h3>Patterns, strongest first</h3><p><b>Based on 8 creatives, so treat every pattern here as a hint, not a rule.</b> Patterns start to be worth acting on from about 30 creatives.</p><ol><li><b>[Hint] Creatives with a "result first" hook did better.</b> Typical cost per conversion with it: $8.26 (2 creatives). With something else: $59.03 (6 creatives). Why "hint": only 2 creatives with it and 6 without, so luck could explain it.</li><li><b>[Hint] Creatives with the reel format did better.</b> Typical cost per conversion with it: $8.33 (3 creatives). With something else: $72.22 (5 creatives). Why "hint": only 3 creatives with it and 5 without, so luck could explain it.</li><li><b>[Hint] Creatives with a talking creator on screen did better.</b> Typical cost per conversion with it: $12.96 (5 creatives). With something else: $75.00 (3 creatives). Why "hint": only 5 creatives with it and 3 without, so luck could explain it.</li><li><b>[Hint] Creatives with a "bold claim" hook did worse.</b> Typical cost per conversion with it: $75.00 (3 creatives). With something else: $12.96 (5 creatives). Why "hint": only 3 creatives with it and 5 without, so luck could explain it. <i>Careful: all of these are from brand page, so it may be the creator, not the hook.</i> <i>Careful: every one of them also had no talking creator on screen and a "shop now" call to action, so Umbra cannot tell which of these actually mattered.</i></li><li><b>[Hint] Creatives with a "shop now" call to action did worse.</b> Typical cost per conversion with it: $75.00 (3 creatives). With something else: $12.96 (5 creatives). Why "hint": only 3 creatives with it and 5 without, so luck could explain it. <i>Careful: all of these are from brand page, so it may be the creator, not the call to action.</i> <i>Careful: every one of them also had no talking creator on screen and a "bold claim" hook, so Umbra cannot tell which of these actually mattered.</i></li></ol><p class="note">How to read this: Umbra looks at all 8 creatives, not just the top and bottom groups. "Typical" means the middle value, so one freak result cannot drag it. Post date is not analysed yet.</p><p class="note">Honest limits: this only describes these creatives. It does not predict future results, and it cannot tell whether a pattern caused the result or just happened alongside it.</p></div><div class="box"><h3>What the TOP performers have in common</h3><ul><li><b>Format:</b> All 3 have the reel format. In the bottom group: 0 of 3.</li><li><b>Talking creator:</b> All 3 have a talking creator on screen. In the bottom group: 1 of 3.</li><li><b>Hook type:</b> Most (2 of 3) have a "result first" hook. In the bottom group: 0 of 3.</li><li><b>Platform:</b> Most (2 of 3) have Instagram as the platform. In the bottom group: 2 of 3.</li><li><b>Creator size:</b> Most (2 of 3) have micro creators (10k to 100k). In the bottom group: 0 of 3.</li><li><b>Length:</b> Most (2 of 3) have a length of 15 to 30 seconds. In the bottom group: 0 of 3.</li><li><b>Call to action:</b> Most (2 of 3) have a "discount code" call to action. In the bottom group: 0 of 3.</li></ul><p>Words that appear in 2 or more top descriptions and in none of the bottom ones: <b>reel</b></p></div><div class="box"><h3>What the BOTTOM performers share</h3><ul><li><b>Format:</b> Nothing shared. Each one is different.</li><li><b>Talking creator:</b> Most (2 of 3) have no talking creator on screen. In the top group: 0 of 3.</li><li><b>Hook type:</b> Most (2 of 3) have a "bold claim" hook. In the top group: 0 of 3.</li><li><b>Platform:</b> Most (2 of 3) have Instagram as the platform. In the top group: 2 of 3.</li><li><b>Creator size:</b> filled in for only 1 of 3. Not enough to say.</li><li><b>Length:</b> Nothing shared. Each one is different.</li><li><b>Call to action:</b> Most (2 of 3) have a "shop now" call to action. In the top group: 0 of 3.</li></ul></div><div class="box"><h3>Hook and hold (video only)</h3><ul><li><b>Stopped scrolling:</b> top performers 58.2% (from 3), bottom performers 31.1% (from 2). This is 3-second views divided by views: how many people the first moments grabbed. Top performers do better here.</li><li><b>Share of the video watched:</b> top performers 55.7% (from 3), bottom performers 24.9% (from 2). This is average watch time divided by length. Top performers do better here.</li></ul><p class="note">These only work for videos where you filled in 3-second views, watch time and length. Static images and carousels are left out.</p></div><div class="box"><b>How Umbra ranked them:</b> by <b>cost per conversion</b>. Cost per conversion = spend divided by conversions. Lower is better: you paid less for each sale or sign-up. A creative with 0 conversions counts as the worst.<br>Top performers = the best 3. Bottom performers = the worst 3. The 2 in the middle are left out of those two groups so the contrast is clearer.</div><h3>All creatives, ranked</h3><div class="wrap"><table><tbody><tr><th>Rank</th><th>Group</th><th>#</th><th>Description</th><th>Format</th><th>Talking creator</th><th>Hook</th><th>Platform</th><th>Creator size</th><th>Length (sec)</th><th>Call to action</th><th>Stopped scrolling</th><th>Watched</th><th>cost per conversion</th></tr><tr class="top"><td>1</td><td>top</td><td>2</td><td>Before and after skin reel, creator explains routine<br><span class="note">@skinbyrhea, 2026-09-04</span></td><td>reel</td><td>yes</td><td>result first</td><td>TikTok</td><td>micro</td><td>28</td><td>discount code</td><td>62.3%</td><td>60.7%</td><td>$8.18</td></tr><tr class="top"><td>2</td><td>top</td><td>1</td><td>Unboxing reel, fast cuts, creator talks to camera<br><span class="note">@glowwithmaya, 2026-09-02</span></td><td>reel</td><td>yes</td><td>result first</td><td>Instagram</td><td>micro</td><td>22</td><td>link in bio</td><td>59.6%</td><td>63.6%</td><td>$8.33</td></tr><tr class="top"><td>3</td><td>top</td><td>3</td><td>Creator asks 'are you making this mistake?' then demos product<br><span class="note">@dailyderm, 2026-09-05</span></td><td>reel</td><td>yes</td><td>question</td><td>Instagram</td><td>nano</td><td>35</td><td>discount code</td><td>52.6%</td><td>42.9%</td><td>$12.96</td></tr><tr class="middle"><td>4</td><td>middle</td><td>4</td><td>Story with creator showing morning routine, swipe up<br><span class="note">@glowwithmaya, 2026-09-08</span></td><td>story</td><td>yes</td><td>question</td><td>Instagram</td><td>micro</td><td>15</td><td>swipe up</td><td>42.9%</td><td>46.7%</td><td>$20.45</td></tr><tr class="middle"><td>5</td><td>middle</td><td>6</td><td>Carousel of 5 product shots with feature bullets<br><span class="note">brand page, 2026-09-10</span></td><td>carousel</td><td>no</td><td>bold claim</td><td>Instagram</td><td>-</td><td>-</td><td>shop now</td><td>-</td><td>-</td><td>$45.83</td></tr><tr class="bottom"><td>6</td><td>bottom</td><td>7</td><td>Long video review, slow intro, creator talks at length<br><span class="note">@thebeautynerd, 2026-09-12</span></td><td>long video</td><td>yes</td><td>slow intro</td><td>YouTube</td><td>macro</td><td>480</td><td>link in description</td><td>40.0%</td><td>19.8%</td><td>$72.22</td></tr><tr class="bottom"><td>7</td><td>bottom</td><td>5</td><td>Product flat lay photo with price text<br><span class="note">brand page, 2026-09-09</span></td><td>static image</td><td>no</td><td>bold claim</td><td>Instagram</td><td>-</td><td>-</td><td>shop now</td><td>-</td><td>-</td><td>$75.00</td></tr><tr class="bottom"><td>8</td><td>bottom</td><td>8</td><td>Logo animation story, no person, music only<br><span class="note">brand page, 2026-09-15</span></td><td>story</td><td>no</td><td>bold claim</td><td>Instagram</td><td>-</td><td>10</td><td>shop now</td><td>22.2%</td><td>30.0%</td><td>$133.33</td></tr></tbody></table></div></div>
+</body>
+</html>

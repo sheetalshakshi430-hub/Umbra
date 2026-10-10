@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Umbra</title>
+<style>
+  :root { --bg: #ffffff; --fg: #111111; --muted: #555555; --line: #cccccc; --err: #b00020; --top: #e9f7ec; --bottom: #fdeaea; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #161616; --fg: #eeeeee; --muted: #aaaaaa; --line: #444444; --err: #ff6b81; --top: #1d3524; --bottom: #3a1f22; color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg: #161616; --fg: #eeeeee; --muted: #aaaaaa; --line: #444444; --err: #ff6b81; --top: #1d3524; --bottom: #3a1f22; color-scheme: dark; }
+  body { background: var(--bg); color: var(--fg); font-family: Arial, Helvetica, sans-serif; font-size: 16px; line-height: 1.5; max-width: 1100px; margin: 0 auto; padding: 16px; }
+  h1 { margin-bottom: 0; }
+  .sub { color: var(--muted); margin-top: 4px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid var(--line); padding: 4px; text-align: left; vertical-align: top; }
+  input, select, button { font-size: 15px; padding: 4px; }
+  input[type=number] { width: 90px; }
+  input.desc { width: 100%; min-width: 220px; box-sizing: border-box; }
+  input.hook, input.cname, input.cta { width: 120px; }
+  .wrap { overflow-x: auto; }
+  .buttons { margin: 12px 0; }
+  .buttons button { margin-right: 8px; }
+  #analyze { font-weight: bold; padding: 8px 20px; }
+  #results { margin-top: 24px; }
+  .box { border: 1px solid var(--line); padding: 12px 16px; margin-bottom: 16px; }
+  .note { color: var(--muted); font-size: 14px; }
+  .error { color: var(--err); font-weight: bold; }
+  #creatives.compact .opt { display: none; }
+  .top { background: var(--top); }
+  .bottom { background: var(--bottom); }
+  .short { border-width: 2px; font-size: 17px; }
+  .stale { border: 2px solid var(--err); padding: 8px 12px; margin: 12px 0; }
+  .reportbar button { margin-right: 8px; }
+  #backbtn, body.reportmode #openreport { display: none; }
+  body.reportmode #backbtn { display: inline-block; }
+  body.reportmode #editor, body.reportmode #intro, body.reportmode #nav { display: none; }
+  #library, body.libmode #editor, body.libmode #results { display: none; }
+  body.libmode #library { display: block; }
+  #nav { margin: 8px 0 16px; }
+  #nav button:disabled { font-weight: bold; opacity: 1; }
+  summary { cursor: pointer; font-weight: bold; }
+  @media print {
+    :root, :root[data-theme="dark"] { --bg: #ffffff; --fg: #000000; --muted: #444444; --line: #999999; --top: #e9f7ec; --bottom: #fdeaea; color-scheme: light; }
+    body { max-width: none; padding: 0; font-size: 12px; }
+    #editor, #intro, #nav, body:not(.printcompare) #library, body.printcompare #library > :not(#compareout), body.printcompare #results, .noprint, #aibox:not(.hasout), #aikeyrow, #aibox button { display: none !important; }
+    .box { break-inside: avoid; }
+    .wrap { overflow: visible; }
+    table { font-size: 10px; }
+    table .note { font-size: inherit; }
+    tr { break-inside: avoid; }
+    .top, .bottom { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+
+<div id="intro">
+<p class="noprint"><a href="index.html">&larr; Umbra home</a></p>
+<h1>Umbra v1</h1>
+<p class="sub">Enter your creatives and their results, then click Analyze. Umbra splits them into top and bottom performers and tells you what each group has in common. It only describes the batch you enter: no memory, no predictions.</p>
+</div>
+
+<div id="nav" class="noprint"><button id="navanalyze" disabled>Analyze</button> <button id="navlib">Library</button></div>
+
+<div id="library">
+  <h2>Library</h2>
+  <p class="note">Every analysis you saved. They are stored in this browser on this computer only, so clearing your browsing data or switching browsers will not bring them along. Click Export backup now and then to keep a copy.</p>
+  <p><label for="libsearch">Search: </label><input id="libsearch" placeholder="campaign, creator, platform, words..." style="width:280px"> 
+    <button id="libexport">Export backup</button> <label>Import backup: <input type="file" id="libimport" accept=".json,application/json"></label></p>
+  <div id="libmsg"></div>
+  <div id="liblist"></div>
+  <h2 class="noprint">Compare two campaigns</h2>
+  <div id="comparebox" class="noprint"></div>
+  <div id="compareout"></div>
+</div>
+
+<div id="editor">
+<p><label for="campaign"><b>Campaign name (optional):</b> </label><input id="campaign" placeholder="e.g. Glow serum launch, September" style="width:320px" maxlength="120"> <span class="note">Shown at the top of the report.</span></p>
+
+<h2>1. Your creatives</h2>
+<p class="note">The form starts with 8 made-up examples so you can click Analyze right away. Edit them, delete rows, or click "Clear all" to start fresh. Umbra remembers what you type in this browser, so refreshing the page will not lose it.</p>
+
+<div class="box" id="importbox">
+  <h3 style="margin-top:0">Import from a spreadsheet</h3>
+  <p class="note">Copy rows from Google Sheets or Excel (include the header row) and paste them in the box. Or pick a CSV file. Umbra matches your columns by their names, so the order does not matter. Columns it needs: Description, Format, Talking creator, Hook, Views, Clicks, Conversions, Spend. Optional: Creator name, Platform, Followers (or creator size), Length, Call to action, Post date, 3-second views, Avg watch time. Other columns are ignored.</p>
+  <textarea id="pastebox" rows="6" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:13px" placeholder="Paste spreadsheet rows here, header row first"></textarea>
+  <p>
+    <label for="csvfile">Or choose a CSV file: </label><input type="file" id="csvfile" accept=".csv,.tsv,.txt,text/csv">
+  </p>
+  <p>
+    <label><input type="radio" name="importmode" id="mode-replace" value="replace" checked> Replace the rows below</label>
+    &nbsp; <label><input type="radio" name="importmode" id="mode-add" value="add"> Add to the rows below</label>
+  </p>
+  <p>
+    <button id="doimport">Import pasted rows</button>
+    <button id="copytemplate">Copy template</button>
+  </p>
+  <div id="importmsg"></div>
+  <details>
+    <summary>See the template</summary>
+    <p class="note">Click "Copy template", paste it into cell A1 of a new Google Sheet or Excel file, and replace the example rows with your own.</p>
+    <textarea id="templatetext" rows="4" readonly style="width:100%;box-sizing:border-box;font-family:monospace;font-size:13px"></textarea>
+  </details>
+</div>
+
+<div class="wrap">
+<table id="creatives" class="compact">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Description</th>
+      <th>Format</th>
+      <th>Talking creator on screen?</th>
+      <th>Hook type (first 3 sec)</th>
+      <th>Views</th>
+      <th>Clicks</th>
+      <th>Conversions</th>
+      <th>Spend</th>
+      <th class="opt">Creator name</th>
+      <th class="opt">Platform</th>
+      <th class="opt">Creator size</th>
+      <th class="opt">Length (sec)</th>
+      <th class="opt">Call to action</th>
+      <th class="opt">Post date</th>
+      <th class="opt">3-second views</th>
+      <th class="opt">Avg watch time (sec)</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+</div>
+
+<p><button id="moredetails">Show more details (optional)</button> <span class="note">Creator name, platform, size, length, call to action, date, 3-second views, watch time. Fill in what you have; Umbra uses whatever is there.</span></p>
+
+<div class="buttons">
+  <button id="add">+ Add creative</button>
+  <button id="clear">Clear all</button>
+  <button id="examples">Load examples again</button>
+  <span id="tablemsg"></span>
+</div>
+
+<h2>2. What counts as winning?</h2>
+<p>
+  <label for="goal">Rank creatives by: </label>
+  <select id="goal">
+    <option value="cpa" selected>Lowest cost per conversion (spend divided by conversions)</option>
+    <option value="conv">Most conversions</option>
+    <option value="ctr">Best click rate (clicks divided by views)</option>
+    <option value="views">Most views</option>
+  </select>
+</p>
+<p class="note" id="goalnote">Pick what your campaign was trying to do. A sales campaign usually cares about cost per conversion; an awareness campaign about views.</p>
+
+<button id="analyze">Analyze</button> <span id="analyzemsg"></span>
+<noscript><p class="error">Umbra needs JavaScript to work, and it is switched off here. Open umbra.html in Chrome or Edge instead.</p></noscript>
+</div>
+
+<div id="results"></div>
+
+<script>
+var FORMATS = ["reel", "static image", "carousel", "story", "long video"];
+var PLATFORMS = ["", "Instagram", "TikTok", "YouTube", "Facebook", "other"];
+var SIZES = ["", "nano (under 10k)", "micro (10k to 100k)", "mid (100k to 500k)", "macro (500k to 1M)", "mega (over 1M)"];
+
+var EXAMPLES = [
+  { desc: "Unboxing reel, fast cuts, creator talks to camera", format: "reel", creator: "yes", hook: "result first", views: 52000, clicks: 1400, conv: 96, spend: 800, cname: "@glowwithmaya", platform: "Instagram", size: "micro (10k to 100k)", length: 22, cta: "link in bio", date: "2026-09-02", v3: 31000, watch: 14 },
+  { desc: "Before and after skin reel, creator explains routine", format: "reel", creator: "yes", hook: "result first", views: 61000, clicks: 1650, conv: 110, spend: 900, cname: "@skinbyrhea", platform: "TikTok", size: "micro (10k to 100k)", length: 28, cta: "discount code", date: "2026-09-04", v3: 38000, watch: 17 },
+  { desc: "Creator asks 'are you making this mistake?' then demos product", format: "reel", creator: "yes", hook: "question", views: 38000, clicks: 900, conv: 54, spend: 700, cname: "@dailyderm", platform: "Instagram", size: "nano (under 10k)", length: 35, cta: "discount code", date: "2026-09-05", v3: 20000, watch: 15 },
+  { desc: "Story with creator showing morning routine, swipe up", format: "story", creator: "yes", hook: "question", views: 21000, clicks: 520, conv: 22, spend: 450, cname: "@glowwithmaya", platform: "Instagram", size: "micro (10k to 100k)", length: 15, cta: "swipe up", date: "2026-09-08", v3: 9000, watch: 7 },
+  { desc: "Product flat lay photo with price text", format: "static image", creator: "no", hook: "bold claim", views: 30000, clicks: 300, conv: 8, spend: 600, cname: "brand page", platform: "Instagram", size: "", length: "", cta: "shop now", date: "2026-09-09", v3: "", watch: "" },
+  { desc: "Carousel of 5 product shots with feature bullets", format: "carousel", creator: "no", hook: "bold claim", views: 26000, clicks: 410, conv: 12, spend: 550, cname: "brand page", platform: "Instagram", size: "", length: "", cta: "shop now", date: "2026-09-10", v3: "", watch: "" },
+  { desc: "Long video review, slow intro, creator talks at length", format: "long video", creator: "yes", hook: "slow intro", views: 15000, clicks: 260, conv: 9, spend: 650, cname: "@thebeautynerd", platform: "YouTube", size: "macro (500k to 1M)", length: 480, cta: "link in description", date: "2026-09-12", v3: 6000, watch: 95 },
+  { desc: "Logo animation story, no person, music only", format: "story", creator: "no", hook: "bold claim", views: 18000, clicks: 150, conv: 3, spend: 400, cname: "brand page", platform: "Instagram", size: "", length: 10, cta: "shop now", date: "2026-09-15", v3: 4000, watch: 3 }
+];
+
+var tbody = document.querySelector("#creatives tbody");
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function addRow(d) {
+  d = d || { desc: "", format: "reel", creator: "yes", hook: "", views: "", clicks: "", conv: "", spend: "" };
+  ["cname", "platform", "size", "length", "cta", "date", "v3", "watch"].forEach(function (f) { if (d[f] === undefined || d[f] === null) d[f] = ""; });
+  var tr = document.createElement("tr");
+  // Build a dropdown; if the value is not in the list (e.g. imported), add it as an extra option
+  function dropdown(cls, list, val) {
+    var all = list.indexOf(val) >= 0 || !val ? list : list.concat([val]);
+    return '<select class="' + cls + '">' + all.map(function (f) { return '<option value="' + esc(f) + '"' + (f === val ? ' selected' : '') + '>' + esc(f || "(not set)") + '</option>'; }).join("") + '</select>';
+  }
+  var fmts = FORMATS.indexOf(d.format) >= 0 || !d.format ? FORMATS : FORMATS.concat([d.format]);
+  var opts = fmts.map(function (f) { return '<option' + (f === d.format ? ' selected' : '') + '>' + esc(f) + '</option>'; }).join("");
+  tr.innerHTML =
+    '<td class="num"></td>' +
+    '<td><input class="desc" value="' + esc(d.desc) + '" placeholder="e.g. unboxing reel, fast cuts"></td>' +
+    '<td><select class="format">' + opts + '</select></td>' +
+    '<td><select class="creator"><option' + (d.creator === "yes" ? " selected" : "") + '>yes</option><option' + (d.creator === "no" ? " selected" : "") + '>no</option></select></td>' +
+    '<td><input class="hook" value="' + esc(d.hook) + '" placeholder="e.g. question"></td>' +
+    '<td><input type="number" min="0" class="views" value="' + d.views + '"></td>' +
+    '<td><input type="number" min="0" class="clicks" value="' + d.clicks + '"></td>' +
+    '<td><input type="number" min="0" class="conv" value="' + d.conv + '"></td>' +
+    '<td><input type="number" min="0" step="0.01" class="spend" value="' + d.spend + '"></td>' +
+    '<td class="opt"><input class="cname" value="' + esc(d.cname) + '" placeholder="e.g. @handle"></td>' +
+    '<td class="opt">' + dropdown("platform", PLATFORMS, d.platform) + '</td>' +
+    '<td class="opt">' + dropdown("size", SIZES, d.size) + '</td>' +
+    '<td class="opt"><input type="number" min="0" class="length" value="' + d.length + '" placeholder="e.g. 30"></td>' +
+    '<td class="opt"><input class="cta" value="' + esc(d.cta) + '" placeholder="e.g. link in bio"></td>' +
+    '<td class="opt"><input type="date" class="date" value="' + esc(d.date) + '"></td>' +
+    '<td class="opt"><input type="number" min="0" class="v3" value="' + d.v3 + '"></td>' +
+    '<td class="opt"><input type="number" min="0" step="0.1" class="watch" value="' + d.watch + '"></td>' +
+    '<td><button class="remove">Delete</button></td>';
+  tr.querySelector(".remove").onclick = function () { tr.remove(); renumber(); saveDraft(); markStale(); };
+  tbody.appendChild(tr);
+  renumber();
+  saveDraft();
+}
+
+function renumber() {
+  Array.prototype.forEach.call(tbody.rows, function (r, i) { r.querySelector(".num").textContent = i + 1; });
+}
+
+// The raw values typed in one row, in the same shape addRow takes
+var ROW_FIELDS = ["desc", "format", "creator", "hook", "views", "clicks", "conv", "spend", "cname", "platform", "size", "length", "cta", "date", "v3", "watch"];
+function rowData(r) {
+  var d = {};
+  ROW_FIELDS.forEach(function (f) { var el = r.querySelector("." + f); d[f] = el ? el.value : ""; });
+  return d;
+}
+function rowIsEmpty(r) {
+  return Array.prototype.every.call(r.querySelectorAll("input"), function (inp) { return !inp.value.trim(); });
+}
+function hasData() {
+  return Array.prototype.some.call(tbody.rows, function (r) { return !rowIsEmpty(r); });
+}
+
+// Autosave: whatever is in the table survives a page refresh (stored in this browser only)
+var DRAFT_KEY = "umbra-draft-v1";
+var restoring = false;
+function saveDraft() {
+  if (restoring) return;
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      rows: Array.prototype.map.call(tbody.rows, rowData),
+      goal: document.getElementById("goal").value,
+      campaign: document.getElementById("campaign").value,
+      libId: currentId,
+      more: !table.classList.contains("compact")
+    }));
+  } catch (e) { /* storage blocked: the page still works, it just won't remember */ }
+}
+function loadDraft() {
+  try {
+    var saved = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+    if (!saved || !saved.rows || !saved.rows.length) return false;
+    restoring = true;
+    tbody.innerHTML = "";
+    saved.rows.forEach(addRow);
+    if (saved.goal && document.querySelector('#goal option[value="' + saved.goal + '"]')) document.getElementById("goal").value = saved.goal;
+    setMore(!!saved.more);
+    document.getElementById("campaign").value = saved.campaign || "";
+    currentId = saved.libId || null;
+    restoring = false;
+    return true;
+  } catch (e) { restoring = false; return false; }
+}
+tbody.addEventListener("input", saveDraft);
+tbody.addEventListener("change", saveDraft);
+
+// Step 7: if the table changes after Analyze, say the results are out of date (never silently show old numbers)
+function markStale() {
+  var b = document.getElementById("stalebanner");
+  if (b) b.style.display = "";
+  var m = document.getElementById("analyzemsg");
+  if (b && m) m.textContent = "You changed the table. Click Analyze to update the results.";
+}
+tbody.addEventListener("input", markStale);
+tbody.addEventListener("change", markStale);
+document.getElementById("campaign").addEventListener("input", function () {
+  saveDraft();
+  var t = document.getElementById("reporttitle");
+  if (t) t.textContent = reportTitle();
+});
+function reportTitle() {
+  var n = document.getElementById("campaign").value.trim();
+  return n ? n + ": creative report" : "Creative report";
+}
+function setReportMode(on) {
+  document.body.classList.toggle("reportmode", on);
+  window.scrollTo(0, 0);
+}
+document.addEventListener("keydown", function (e) { if (e.key === "Escape" && document.body.classList.contains("reportmode")) setReportMode(false); });
+
+var table = document.getElementById("creatives");
+function setMore(on) {
+  table.classList.toggle("compact", !on);
+  document.getElementById("moredetails").textContent = on ? "Hide extra details" : "Show more details (optional)";
+}
+document.getElementById("moredetails").onclick = function () { setMore(table.classList.contains("compact")); saveDraft(); };
+
+function loadExamples() {
+  tbody.innerHTML = "";
+  EXAMPLES.forEach(addRow);
+  document.getElementById("results").innerHTML = "";
+}
+
+document.getElementById("add").onclick = function () { addRow(); markStale(); };
+// Clear all / Load examples: act straight away, but offer Undo (pop-up "Are you sure?" boxes are blocked in some app previews)
+function offerUndo(what) {
+  var before = Array.prototype.map.call(tbody.rows, rowData);
+  var msg = document.getElementById("tablemsg");
+  if (!before.some(function (d) { return ROW_FIELDS.some(function (f) { return f !== "format" && f !== "creator" && String(d[f]).trim(); }); })) { msg.innerHTML = ""; return; }
+  return function () {
+    msg.innerHTML = what + ' <button id="undobtn">Undo</button>';
+    document.getElementById("undobtn").onclick = function () {
+      tbody.innerHTML = ""; before.forEach(addRow);
+      document.getElementById("results").innerHTML = "";
+      msg.innerHTML = "Your rows are back.";
+    };
+  };
+}
+document.getElementById("clear").onclick = function () {
+  var undo = offerUndo("Table cleared.");
+  tbody.innerHTML = "";
+  for (var i = 0; i < 6; i++) addRow();
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("analyzemsg").innerHTML = "";
+  if (undo) undo();
+};
+document.getElementById("examples").onclick = function () {
+  var undo = offerUndo("Examples loaded.");
+  loadExamples();
+  document.getElementById("analyzemsg").innerHTML = "";
+  if (undo) undo();
+};
+document.getElementById("analyze").onclick = analyze;
+// Changing what counts as winning re-runs the analysis straight away if results are showing
+document.getElementById("goal").onchange = function () {
+  saveDraft();
+  if (document.getElementById("results").innerHTML) analyze();
+};
+
+// ---------- Step 2: spreadsheet import ----------
+
+var TEMPLATE =
+  "Description\tFormat\tTalking creator\tHook\tViews\tClicks\tConversions\tSpend\tCreator name\tPlatform\tFollowers\tLength (sec)\tCall to action\tPost date\t3-second views\tAvg watch time (sec)\n" +
+  "Unboxing reel, fast cuts, creator talks to camera\treel\tyes\tresult first\t52000\t1400\t96\t800\t@glowwithmaya\tInstagram\t45000\t22\tlink in bio\t2026-09-02\t31000\t14\n" +
+  "Product flat lay photo with price text\tstatic image\tno\tbold claim\t30000\t300\t8\t600\tbrand page\tInstagram\t\t\tshop now\t2026-09-09\t\t\n";
+document.getElementById("templatetext").value = TEMPLATE;
+
+// Which of our fields each spreadsheet header means. First matching rule wins.
+var HEADER_RULES = [
+  ["skip", /campaign|per |rate|ctr|cpa|cpm|cpc|roas|%/],
+  ["v3", /(3|three).?s(ec(ond)?s?)?.?(view|play)/],
+  ["watch", /watch|view.?duration|retention|avg.*(time|duration)|average.*(time|duration)/],
+  ["cname", /creator.?name|influencer|handle|username|account/],
+  ["size", /size|tier|follower|audience/],
+  ["platform", /platform|channel|network|social/],
+  ["date", /date|posted|published|went live/],
+  ["length", /length|duration|runtime|seconds|secs/],
+  ["cta", /call.?to.?action|cta/],
+  ["desc", /desc|caption|creative|content|concept|title|^name$/],
+  ["hook", /hook|opening|intro|first/],
+  ["creator", /creator|talking|face|person|on.?screen|talent/],
+  ["format", /format|type|placement/],
+  ["views", /view|impression|reach|plays/],
+  ["clicks", /click|tap|swipe|link/],
+  ["conv", /conv|sale|purchase|order|signup|sign.?up|lead|result/],
+  ["spend", /spend|cost|budget|fee|paid|amount/]
+];
+
+function fieldFor(header) {
+  var h = header.toLowerCase().trim();
+  if (!h) return null;
+  for (var i = 0; i < HEADER_RULES.length; i++) if (HEADER_RULES[i][1].test(h)) return HEADER_RULES[i][0];
+  return null;
+}
+
+// Split text into rows of cells. Handles tabs (copied from Sheets/Excel) or commas (CSV files), and "quoted, cells".
+function parseTable(text) {
+  text = text.replace(/\r\n?/g, "\n").replace(/^﻿/, "");
+  var firstLine = text.split("\n")[0];
+  var sep = firstLine.indexOf("\t") >= 0 ? "\t" : (firstLine.split(";").length > firstLine.split(",").length ? ";" : ",");
+  var rows = [], row = [], cell = "", inQ = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (inQ) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') inQ = false;
+      else cell += ch;
+    } else if (ch === '"' && cell === "") inQ = true;
+    else if (ch === sep) { row.push(cell); cell = ""; }
+    else if (ch === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += ch;
+  }
+  row.push(cell); rows.push(row);
+  return rows.filter(function (r) { return r.some(function (c) { return c.trim() !== ""; }); });
+}
+
+function cleanNumber(v) {
+  v = String(v || "").trim();
+  if (!v) return "";
+  if (/^(-+|n\/?a|none|null|nil|tbd|\?)$/i.test(v)) return "";
+  var k = /k$/i.test(v) ? 1000 : (/m$/i.test(v) ? 1000000 : 1);
+  v = v.replace(/[$£€\s,]/g, "").replace(/[km]$/i, "");
+  var n = Number(v);
+  return isFinite(n) ? n * k : null;
+}
+
+function cleanYesNo(v) {
+  v = String(v || "").trim().toLowerCase();
+  if (/^(no|n|false|0|none|-)$/.test(v)) return "no";
+  return "yes";
+}
+
+function cleanFormat(v) {
+  v = String(v || "").trim().toLowerCase();
+  if (!v) return "reel";
+  if (/reel|short|tiktok/.test(v)) return "reel";
+  if (/carousel/.test(v)) return "carousel";
+  if (/story|stories/.test(v)) return "story";
+  if (/static|image|photo|picture|post/.test(v)) return "static image";
+  if (/long|youtube|video/.test(v)) return "long video";
+  return v; // keep their own word; it becomes a new option in the dropdown
+}
+
+function cleanPlatform(v) {
+  v = String(v || "").trim().toLowerCase();
+  if (!v) return "";
+  if (/insta|^ig$|reels/.test(v)) return "Instagram";
+  if (/tik/.test(v)) return "TikTok";
+  if (/you|^yt$|shorts/.test(v)) return "YouTube";
+  if (/face|^fb$|meta/.test(v)) return "Facebook";
+  return "other";
+}
+
+// Accepts a follower count (45000, 45k) or a tier word (micro, nano...)
+function cleanSize(v) {
+  v = String(v || "").trim();
+  if (!v) return "";
+  var words = ["nano", "micro", "mid", "macro", "mega"];
+  for (var i = 0; i < words.length; i++) if (v.toLowerCase().indexOf(words[i]) >= 0) return SIZES[i + 1];
+  var n = cleanNumber(v);
+  if (n === null || n === "") return null;
+  if (n < 10000) return SIZES[1];
+  if (n < 100000) return SIZES[2];
+  if (n < 500000) return SIZES[3];
+  if (n < 1000000) return SIZES[4];
+  return SIZES[5];
+}
+
+// Seconds from "45", "45s", "0:45" or "1:20"
+function cleanSeconds(v) {
+  v = String(v || "").trim().toLowerCase();
+  if (!v) return "";
+  if (/^(-+|n\/?a|none|null|nil|tbd|\?)$/i.test(v)) return "";
+  var m = v.match(/^(\d+):(\d{1,2})$/);
+  if (m) return Number(m[1]) * 60 + Number(m[2]);
+  v = v.replace(/\s*(s|sec|secs|seconds)$/, "");
+  var n = Number(v);
+  return isFinite(n) && n >= 0 ? n : null;
+}
+
+// Returns "YYYY-MM-DD", "" if blank, or null if unreadable.
+// Dates like 03/10/2026 are read day first (3 October), which is what most of the world uses.
+var dayFirstGuess = false;
+function cleanDate(v) {
+  v = String(v || "").trim();
+  if (!v) return "";
+  function pad(x) { return (x < 10 ? "0" : "") + x; }
+  var m = v.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+  if (m) return m[1] + "-" + pad(+m[2]) + "-" + pad(+m[3]);
+  m = v.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/);
+  if (m) {
+    var a = +m[1], b = +m[2], y = +m[3]; if (y < 100) y += 2000;
+    var day = a, mon = b;
+    if (a <= 12 && b > 12) { day = b; mon = a; }
+    else if (a <= 12 && b <= 12 && a !== b) dayFirstGuess = true;
+    if (mon < 1 || mon > 12 || day < 1 || day > 31) return null;
+    return y + "-" + pad(mon) + "-" + pad(day);
+  }
+  var d = new Date(v);
+  if (isNaN(d)) return null;
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+
+function importText(text) {
+  var msg = document.getElementById("importmsg");
+  var rows = parseTable(text || "");
+  var names = { desc: "Description", format: "Format", creator: "Talking creator", hook: "Hook", views: "Views", clicks: "Clicks", conv: "Conversions", spend: "Spend",
+    cname: "Creator name", platform: "Platform", size: "Creator size / followers", length: "Length", cta: "Call to action", date: "Post date", v3: "3-second views", watch: "Avg watch time" };
+  dayFirstGuess = false;
+  if (!rows.length) { msg.innerHTML = '<p class="error">Nothing to import. Paste some rows first.</p>'; return; }
+
+  // Read the header row
+  var map = {}, unused = [];
+  rows[0].forEach(function (h, i) {
+    var f = fieldFor(h);
+    if (f && f !== "skip" && !(f in map)) map[f] = i; else if (h.trim()) unused.push(h.trim());
+  });
+  var matched = Object.keys(map).length;
+  var body = rows.slice(1);
+  var guessed = false;
+  if (matched < 2) {
+    // No recognisable header: assume the template's column order and treat row 1 as data
+    map = { desc: 0, format: 1, creator: 2, hook: 3, views: 4, clicks: 5, conv: 6, spend: 7, cname: 8, platform: 9, size: 10, length: 11, cta: 12, date: 13, v3: 14, watch: 15 };
+    body = rows; unused = []; guessed = true;
+  }
+
+  var good = [], problems = [];
+  body.forEach(function (r, i) {
+    function get(f) { return f in map ? (r[map[f]] || "").trim() : ""; }
+    var d = {
+      desc: get("desc"), format: cleanFormat(get("format")), creator: "creator" in map ? cleanYesNo(get("creator")) : "yes",
+      hook: get("hook"), views: cleanNumber(get("views")), clicks: cleanNumber(get("clicks")),
+      conv: cleanNumber(get("conv")), spend: cleanNumber(get("spend")),
+      cname: get("cname"), platform: cleanPlatform(get("platform")), size: cleanSize(get("size")),
+      length: cleanSeconds(get("length")), cta: get("cta").toLowerCase(), date: cleanDate(get("date")),
+      v3: cleanNumber(get("v3")), watch: cleanSeconds(get("watch"))
+    };
+    var lineNo = i + (guessed ? 1 : 2);
+    var bad = ["views", "clicks", "conv", "spend", "size", "length", "date", "v3", "watch"].filter(function (f) { return d[f] === null; });
+    if (bad.length) { problems.push("Line " + lineNo + ": could not read " + bad.map(function (f) { return names[f]; }).join(", ") + ". Those cells were left blank."); bad.forEach(function (f) { d[f] = ""; }); }
+    if (d.v3 !== "" && d.views !== "" && d.v3 > d.views) problems.push("Line " + lineNo + ": 3-second views (" + d.v3 + ") is higher than views (" + d.views + "). Check those two columns are not swapped.");
+    if (d.watch !== "" && d.length !== "" && d.watch > d.length) problems.push("Line " + lineNo + ": average watch time is longer than the video itself. Check both are in seconds.");
+    good.push(d);
+  });
+
+  if (!good.length) { msg.innerHTML = '<p class="error">Found a header row but no data rows under it.</p>'; return; }
+
+  if (document.getElementById("mode-replace").checked) tbody.innerHTML = "";
+  else {
+    // Drop completely empty rows before adding
+    Array.prototype.slice.call(tbody.rows).forEach(function (r) {
+      if (rowIsEmpty(r)) r.remove();
+    });
+  }
+  // Skip rows that are already in the table (e.g. the same sheet pasted twice in "Add" mode)
+  var existing = {};
+  Array.prototype.forEach.call(tbody.rows, function (r) { existing[sameKey(rowData(r))] = 1; });
+  var dupes = 0;
+  good = good.filter(function (d) { var key = sameKey(d); if (existing[key]) { dupes++; return false; } existing[key] = 1; return true; });
+  good.forEach(addRow);
+  var hasExtra = good.some(function (d) { return ["cname", "platform", "size", "length", "cta", "date", "v3", "watch"].some(function (f) { return d[f] !== ""; }); });
+  if (hasExtra) setMore(true);
+  document.getElementById("results").innerHTML = "";
+
+  var missingCols = ["desc", "format", "creator", "hook", "views", "clicks", "conv", "spend"].filter(function (f) { return !(f in map); });
+  var missingExtra = ["cname", "platform", "size", "length", "cta", "date", "v3", "watch"].filter(function (f) { return !(f in map); });
+  var out = '<p><b>Imported ' + good.length + ' creative' + (good.length === 1 ? '' : 's') + '.</b> Check the table below, then click Analyze.</p><ul>';
+  if (guessed) out += '<li>No column names recognised, so Umbra assumed the template order: ' + Object.keys(names).map(function (f) { return names[f]; }).join(", ") + '.</li>';
+  if (missingCols.length && !guessed) out += '<li>Columns not found, left blank: ' + missingCols.map(function (f) { return names[f]; }).join(", ") + '.' + (missingCols.indexOf("creator") >= 0 ? ' Talking creator was set to "yes" for every row, so fix it by hand.' : '') + '</li>';
+  if (missingExtra.length && !guessed) out += '<li>Optional columns not in your sheet (fine, fill them in below if you have them): ' + missingExtra.map(function (f) { return names[f]; }).join(", ") + '.</li>';
+  if (dupes) out += '<li>Skipped ' + dupes + ' row' + (dupes === 1 ? '' : 's') + ' that exactly matched one already in the table.</li>';
+  if (hasExtra) out += '<li>Your sheet had optional details, so the extra columns are now showing.</li>';
+  if (dayFirstGuess) out += '<li>Some dates could be read two ways (like 03/10/2026). Umbra read them day first, so 03/10 = 3 October. Check the Post date column.</li>';
+  if (unused.length) out += '<li>Columns ignored: ' + unused.map(esc).join(", ") + '.</li>';
+  problems.forEach(function (p) { out += '<li>' + esc(p) + '</li>'; });
+  out += '</ul>';
+  msg.innerHTML = out;
+}
+
+document.getElementById("doimport").onclick = function () { importText(document.getElementById("pastebox").value); };
+
+document.getElementById("csvfile").onchange = function (e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function () { document.getElementById("pastebox").value = reader.result; importText(reader.result); };
+  reader.onerror = function () { document.getElementById("importmsg").innerHTML = '<p class="error">Could not read that file. Try saving it as CSV again, or paste the rows instead.</p>'; };
+  reader.readAsText(file);
+  e.target.value = "";
+};
+
+document.getElementById("copytemplate").onclick = function () {
+  var msg = document.getElementById("importmsg");
+  var box = document.getElementById("templatetext");
+  function fallback() {
+    box.closest("details").open = true;
+    box.focus(); box.select();
+    msg.innerHTML = '<p>Your browser blocked copying. The template is selected in the box below: press Ctrl+C (Cmd+C on Mac) to copy it.</p>';
+  }
+  try {
+    navigator.clipboard.writeText(TEMPLATE).then(function () {
+      msg.innerHTML = '<p>Template copied. Paste it into cell A1 of a new Google Sheet or Excel file.</p>';
+    }, fallback);
+  } catch (err) { fallback(); }
+};
+
+// Two rows count as the same creative when every number and the description match
+function sameKey(d) {
+  return [d.desc, d.views, d.clicks, d.conv, d.spend, d.cname].map(function (x) { return String(x === null || x === undefined ? "" : x).trim().toLowerCase(); }).join("|");
+}
+
+// "Question?", "question " and "Question" all count as the same hook
+function tidyLabel(v) {
+  return String(v || "").toLowerCase().replace(/[-_]/g, " ").replace(/[^a-z0-9@#%$' ]/g, "").replace(/\s+/g, " ").trim();
+}
+
+var negatives = [];
+function num(v) {
+  if (v === "" || v === null) return null;
+  if (Number(v) < 0) negatives.push(v);
+  var n = Number(v);
+  return isFinite(n) && n >= 0 ? n : null;
+}
+
+// Turns raw typed values (from the table, or from a saved analysis) into numbers Umbra can work with
+function readRows(rawList) {
+  rawList = rawList || Array.prototype.map.call(tbody.rows, rowData);
+  var out = [];
+  rawList.forEach(function (d, i) {
+    function v(f) { return d[f] === undefined || d[f] === null ? "" : String(d[f]); }
+    var c = {
+      n: i + 1,
+      desc: v("desc").trim(),
+      format: v("format") || "reel",
+      creator: v("creator") || "yes",
+      hook: tidyLabel(v("hook")),
+      views: num(v("views")),
+      clicks: num(v("clicks")),
+      conv: num(v("conv")),
+      spend: num(v("spend")),
+      cname: v("cname").trim(),
+      platform: v("platform"),
+      size: v("size"),
+      length: num(v("length")),
+      cta: tidyLabel(v("cta")),
+      date: v("date"),
+      v3: num(v("v3")),
+      watch: num(v("watch"))
+    };
+    // Skip rows that are completely empty
+    var before = negatives.length;
+    if (!c.desc && c.views === null && c.clicks === null && c.conv === null && c.spend === null && before === 0) return;
+    if (negatives.length) { c.negative = true; negatives = []; }
+    out.push(c);
+  });
+  return out;
+}
+
+function money(x) { return "$" + x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function pct(x) { return (x * 100).toFixed(1) + "%"; }
+
+// Runs the analysis and always says what happened right next to the Analyze button
+function analyze() {
+  var msg = document.getElementById("analyzemsg");
+  var res = document.getElementById("results");
+  try {
+    runAnalysis();
+  } catch (err) {
+    msg.innerHTML = '<span class="error">Something went wrong: ' + esc(err && err.message || err) + '. Try opening umbra.html in Chrome or Edge, and tell Claude what this message says.</span>';
+    return;
+  }
+  var problem = res.querySelector("p.error");
+  if (problem && res.children.length === 1) {
+    msg.innerHTML = '<span class="error">' + esc(problem.textContent) + '</span>';
+  } else {
+    msg.innerHTML = 'Done. <a href="#results" id="jumpresults">Your results are just below</a>, scroll down.';
+    document.getElementById("jumpresults").onclick = function (e) { e.preventDefault(); res.scrollIntoView(); };
+  }
+}
+
+// input (optional) = { rows: saved raw rows, goal: "cpa" } for Compare: then nothing is drawn,
+// and the patterns (or the problem) are returned instead
+function runAnalysis(input) {
+  var silent = !!input;
+  var res = document.getElementById("results");
+  if (!silent) lastAnalysis = null;
+  var rows = readRows(silent ? input.rows : undefined);
+  function stop(html) {
+    if (silent) return { error: plain(html) };
+    res.innerHTML = '<p class="error">' + html + '</p>';
+  }
+
+  if (rows.length < 4) {
+    return stop('Add at least 4 creatives (6 to 8 is better) so there is something to compare. Right now there ' + (rows.length === 1 ? 'is 1' : 'are ' + rows.length) + '.');
+  }
+  var neg = rows.filter(function (c) { return c.negative; });
+  if (neg.length) {
+    return stop('Row(s) ' + neg.map(function (c) { return c.n; }).join(", ") + ' have a number below 0. Views, clicks, spend and the rest can only be 0 or more. Fix those and click Analyze again.');
+  }
+
+  // Things that are allowed but look like typing mistakes. Shown above the results, never blocking.
+  var checks = [];
+  rows.forEach(function (c) {
+    if (c.clicks !== null && c.views !== null && c.clicks > c.views) checks.push("Row " + c.n + " has more clicks than views.");
+    if ((silent ? input.goal : document.getElementById("goal").value) === "ctr" && c.views === 0) checks.push("Row " + c.n + " has 0 views, so its click rate counts as 0.");
+    if (c.v3 !== null && c.views !== null && c.v3 > c.views) checks.push("Row " + c.n + " has more 3-second views than views.");
+    if (c.watch !== null && c.length !== null && c.length > 0 && c.watch > c.length) checks.push("Row " + c.n + " has an average watch time longer than the video.");
+    if ((c.v3 !== null || c.watch !== null) && (c.format === "static image" || c.format === "carousel")) checks.push("Row " + c.n + " is a " + c.format + " but has video numbers. Umbra ignores them for the hook and hold check.");
+  });
+  var seenRow = {};
+  rows.forEach(function (c) {
+    var key = sameKey(c);
+    if (seenRow[key]) checks.push("Rows " + seenRow[key] + " and " + c.n + " look identical. If it is the same creative entered twice, delete one or it counts double.");
+    else seenRow[key] = c.n;
+  });
+  // Step 3: rank by whatever the user picked as "winning"
+  var goal = silent ? input.goal : document.getElementById("goal").value;
+  var GOALS = {
+    cpa: { need: ["spend", "conv"], name: "cost per conversion", lowerBetter: true,
+      explain: "Cost per conversion = spend divided by conversions. Lower is better: you paid less for each sale or sign-up. A creative with 0 conversions counts as the worst.",
+      score: function (c) { return c.conv > 0 ? c.spend / c.conv : Infinity; },
+      text: function (c) { return c.conv > 0 ? money(c.spend / c.conv) : "no conversions"; } },
+    conv: { need: ["conv"], name: "conversions", lowerBetter: false,
+      explain: "Most conversions (sales or sign-ups) wins. This ignores cost, so a creative that got more budget can win just by being shown more.",
+      score: function (c) { return c.conv; },
+      text: function (c) { return String(c.conv); } },
+    ctr: { need: ["views", "clicks"], name: "click rate", lowerBetter: false,
+      explain: "Click rate = clicks divided by views. Higher is better: more of the people who saw it clicked.",
+      score: function (c) { return c.views > 0 ? c.clicks / c.views : 0; },
+      text: function (c) { return c.views > 0 ? pct(c.clicks / c.views) : "no views"; } },
+    views: { need: ["views"], name: "views", lowerBetter: false,
+      explain: "Most views wins. This ignores cost and whether anyone clicked or bought, so it only tells you what got attention.",
+      score: function (c) { return c.views; },
+      text: function (c) { return c.views.toLocaleString(); } }
+  };
+  var G = GOALS[goal];
+  var LABELS = { spend: "Spend", conv: "Conversions", views: "Views", clicks: "Clicks" };
+  for (var gi = 0; gi < G.need.length; gi++) {
+    var f = G.need[gi];
+    var missing = rows.filter(function (c) { return c[f] === null || (f === "spend" && c.spend === 0); });
+    if (missing.length) {
+      return stop('Ranking by ' + G.name + ' needs a ' + LABELS[f] + ' number on every creative' + (f === "spend" ? ' (above 0)' : ' (0 is fine)') + '. Missing on row(s): ' + missing.map(function (c) { return c.n; }).join(", ") + '. Fill them in, or pick a different "What counts as winning" option.');
+    }
+  }
+  var measureName = G.name, measureExplain = G.explain;
+  rows.forEach(function (c) { c.score = G.score(c); c.scoreText = G.text(c); });
+  rows.sort(function (a, b) { if (a.score === b.score) return 0; return (G.lowerBetter ? a.score < b.score : a.score > b.score) ? -1 : 1; });
+  if (rows[0].score === rows[rows.length - 1].score) {
+    return stop('Every creative has the same ' + G.name + ' (' + rows[0].scoreText + '), so there are no winners or losers to compare. Pick a different "What counts as winning" option.');
+  }
+
+  // Top third vs bottom third (at least 2 each); the middle is left out so the contrast is clear
+  var k = Math.max(2, Math.round(rows.length / 3));
+  var top = rows.slice(0, k);
+  var bottom = rows.slice(rows.length - k);
+  rows.forEach(function (c, i) { c.group = i < k ? "top" : (i >= rows.length - k ? "bottom" : "middle"); });
+  if (top[k - 1].score === bottom[0].score) checks.push("Some creatives tie on " + G.name + " right where the top group ends and the bottom group starts, so the split between them is arbitrary. Treat the patterns below with extra caution.");
+  else if (rows.length > 2 * k && (top[k - 1].score === rows[k].score || bottom[0].score === rows[rows.length - k - 1].score)) checks.push("Some creatives tie on " + G.name + " at the edge of a group, so which group they landed in is a coin flip.");
+  var noConv = rows.filter(function (c) { return goal === "cpa" && c.conv === 0; }).length;
+  if (noConv > 1) checks.push(noConv + " creatives had 0 conversions. They all tie for last place, in no particular order.");
+
+  // Traits to compare
+  function lengthBucket(s) {
+    if (s === null) return "";
+    if (s < 15) return "under 15 seconds";
+    if (s <= 30) return "15 to 30 seconds";
+    if (s <= 60) return "31 to 60 seconds";
+    return "over 60 seconds";
+  }
+  function traits(c) {
+    var t = [
+      { key: "format:" + c.format, label: "the " + c.format + " format", short: c.format + "s" },
+      { key: "creator:" + c.creator, label: c.creator === "yes" ? "a talking creator on screen" : "no talking creator on screen", short: c.creator === "yes" ? "a talking creator" : "no talking creator" },
+    ];
+    if (c.hook) t.push({ key: "hook:" + c.hook, label: 'a "' + c.hook + '" hook' });
+    // Optional details: only counted when filled in
+    if (c.platform) t.push({ key: "platform:" + c.platform, label: c.platform + " as the platform" });
+    if (c.size) t.push({ key: "size:" + c.size, label: c.size.split(" ")[0] + " creators " + c.size.slice(c.size.indexOf("(")) });
+    var lb = lengthBucket(c.length);
+    if (lb) t.push({ key: "length:" + lb, label: "a length of " + lb });
+    if (c.cta) t.push({ key: "cta:" + c.cta, label: 'a "' + c.cta + '" call to action' });
+    return t;
+  }
+  function countTraits(group) {
+    var m = {};
+    group.forEach(function (c) {
+      traits(c).forEach(function (t) {
+        if (!m[t.key]) m[t.key] = { t: t, n: 0 };
+        m[t.key].n++;
+      });
+    });
+    return m;
+  }
+  var topC = countTraits(top), botC = countTraits(bottom);
+
+  function describe(group, counts, other, otherCounts, word) {
+    var lines = [];
+    var cats = [["format:", "Format"], ["creator:", "Talking creator"], ["hook:", "Hook type"], ["platform:", "Platform"], ["size:", "Creator size"], ["length:", "Length"], ["cta:", "Call to action"]];
+    cats.forEach(function (cat) {
+      var items = Object.keys(counts).filter(function (k) { return k.indexOf(cat[0]) === 0; })
+        .map(function (k) { return counts[k]; })
+        .sort(function (a, b) { return b.n - a.n; });
+      var otherHas = Object.keys(otherCounts).some(function (k) { return k.indexOf(cat[0]) === 0; });
+      if (!items.length && !otherHas) return; // nobody filled this in, so don't mention it
+      if (!items.length) { lines.push("<b>" + cat[1] + ":</b> not filled in for this group."); return; }
+      var best = items[0];
+      var filled = items.reduce(function (s, x) { return s + x.n; }, 0);
+      if (filled < 2) { lines.push("<b>" + cat[1] + ":</b> filled in for only " + filled + " of " + group.length + ". Not enough to say."); return; }
+      var otherN = otherCounts[best.t.key] ? otherCounts[best.t.key].n : 0;
+      var lead;
+      if (best.n === group.length) lead = group.length === 2 ? "Both have " : "All " + group.length + " have ";
+      else if (best.n / group.length > 0.5) lead = "Most (" + best.n + " of " + group.length + ") have ";
+      else if (best.n === 1) { lines.push("<b>" + cat[1] + ":</b> Nothing shared. Each one is different."); return; }
+      else lead = "Mixed. The most common (" + best.n + " of " + group.length + ") is ";
+      var line = "<b>" + cat[1] + ":</b> " + lead + best.t.label + ". In the " + word + " group: " + otherN + " of " + other.length + ".";
+      lines.push(line);
+    });
+    return "<ul><li>" + lines.join("</li><li>") + "</li></ul>";
+  }
+
+  // Words that show up in winner descriptions but not loser ones
+  var STOP = "a an the and or of to in on with for at by is it this that then from as be are was your you my our their they them its no not but".split(" ");
+  function words(group) {
+    var m = {};
+    group.forEach(function (c) {
+      var seen = {};
+      c.desc.toLowerCase().replace(/[^a-z0-9' ]/g, " ").split(/\s+/).forEach(function (w) {
+        w = w.replace(/^'+|'+$/g, "");
+        if (w.length < 3 || STOP.indexOf(w) >= 0 || seen[w]) return;
+        seen[w] = 1;
+        m[w] = (m[w] || 0) + 1;
+      });
+    });
+    return m;
+  }
+  var tw = words(top), bw = words(bottom);
+  var winWords = Object.keys(tw).filter(function (w) { return tw[w] >= 2 && !bw[w]; });
+  var loseWords = Object.keys(bw).filter(function (w) { return bw[w] >= 2 && !tw[w]; });
+
+  // ---------- Step 5: patterns across ALL creatives, with an honest strength label ----------
+  // Each creative gets a position from 0 (best) to 1 (worst); ties share the same position.
+  // For every trait we compare creatives that have it with creatives that have a different value
+  // for the same detail, so blank cells never count as "didn't have it".
+  rows.forEach(function (c) {
+    var firstSame = 0, lastSame = rows.length - 1;
+    for (var i = 0; i < rows.length; i++) if (rows[i].score === c.score) { firstSame = i; break; }
+    for (var j = rows.length - 1; j >= 0; j--) if (rows[j].score === c.score) { lastSame = j; break; }
+    c.pos = rows.length > 1 ? ((firstSame + lastSame) / 2) / (rows.length - 1) : 0;
+  });
+  function median(list) {
+    var v = list.map(function (c) { return c.score; }).sort(function (a, b) { return a - b; });
+    var m = Math.floor(v.length / 2);
+    if (v.length % 2) return v[m];
+    if (v[m - 1] === Infinity || v[m] === Infinity) return v[m - 1] === Infinity ? Infinity : (v[m] === Infinity ? v[m - 1] : v[m]);
+    return (v[m - 1] + v[m]) / 2;
+  }
+  function fmtTypical(v) {
+    if (goal === "cpa") return v === Infinity ? "no conversions" : money(v);
+    if (goal === "ctr") return pct(v);
+    if (goal === "conv") return String(Math.round(v * 10) / 10);
+    return Math.round(v).toLocaleString();
+  }
+  function avgPos(list) { return list.reduce(function (s, c) { return s + c.pos; }, 0) / list.length; }
+  function idsOf(list) { return list.map(function (c) { return c.n; }).sort(function (a, b) { return a - b; }).join(","); }
+
+  var traitIndex = {};
+  rows.forEach(function (c) { traits(c).forEach(function (t) { if (!traitIndex[t.key]) traitIndex[t.key] = t; }); });
+  var findings = [], comparisons = {};
+  Object.keys(traitIndex).forEach(function (key) {
+    var prefix = key.slice(0, key.indexOf(":") + 1);
+    var withT = [], withoutT = [];
+    rows.forEach(function (c) {
+      var ts = traits(c), has = false, filled = false;
+      ts.forEach(function (t) { if (t.key === key) has = true; if (t.key.indexOf(prefix) === 0) filled = true; });
+      if (has) withT.push(c); else if (filled) withoutT.push(c);
+    });
+    if (withT.length < 2 || withoutT.length < 2) return;
+    var diff = avgPos(withoutT) - avgPos(withT); // positive = creatives with it rank better
+    comparisons[key] = { t: traitIndex[key], diff: diff, withT: withT, withoutT: withoutT };
+    if (Math.abs(diff) < 0.2) return;
+    findings.push({ t: traitIndex[key], prefix: prefix, withT: withT, withoutT: withoutT, diff: diff, ids: idsOf(withT), otherIds: idsOf(withoutT) });
+  });
+  findings.sort(function (a, b) { return Math.abs(b.diff) - Math.abs(a.diff); });
+
+  // Drop mirror images ("talking creator: yes" helps = "talking creator: no" hurts) and keep the stronger wording
+  var kept = [];
+  findings.forEach(function (f) {
+    var mirror = kept.some(function (k) { return k.prefix === f.prefix && k.ids === f.otherIds && k.otherIds === f.ids; });
+    if (!mirror) kept.push(f);
+  });
+  findings = kept;
+
+  function strength(f) {
+    var smaller = Math.min(f.withT.length, f.withoutT.length);
+    if (rows.length < 30 || smaller < 5) return { word: "Hint", why: "only " + f.withT.length + " creatives with it and " + f.withoutT.length + " without, so luck could explain it" };
+    if (Math.abs(f.diff) >= 0.35 && smaller >= 8) return { word: "Strong signal", why: "a big, consistent gap across " + (f.withT.length + f.withoutT.length) + " creatives" };
+    return { word: "Worth testing", why: "a real gap across " + (f.withT.length + f.withoutT.length) + " creatives, but not a big one" };
+  }
+
+  var takeaways = findings.slice(0, 5).map(function (f) {
+    var good = f.diff > 0;
+    var s = strength(f);
+    var line = "<b>[" + s.word + "] " + "Creatives with " + f.t.label + (good ? " did better." : " did worse.") + "</b> " +
+      "Typical " + measureName + " with it: " + fmtTypical(median(f.withT)) + " (" + f.withT.length + " creatives). " +
+      "With something else: " + fmtTypical(median(f.withoutT)) + " (" + f.withoutT.length + " creatives). " +
+      "Why \"" + s.word.toLowerCase() + "\": " + s.why + ".";
+    // Same creator behind every example? Then it may be the creator, not the trait.
+    var names = f.withT.map(function (c) { return c.cname.toLowerCase(); });
+    if (names[0] && names.every(function (x) { return x === names[0]; })) line += " <i>Careful: all of these are from " + esc(f.withT[0].cname) + ", so it may be the creator, not the " + ({ format: "format", creator: "talking creator", hook: "hook", platform: "platform", size: "creator size", length: "length", cta: "call to action" }[f.prefix.replace(":", "")] || "detail") + ".</i>";
+    // Traits that always travelled together can't be told apart
+    var twins = Object.keys(traitIndex).filter(function (k) {
+      if (k === f.t.key) return false;
+      var w = rows.filter(function (c) { return traits(c).some(function (t) { return t.key === k; }); });
+      return idsOf(w) === f.ids;
+    }).map(function (k) { return traitIndex[k].label; });
+    if (twins.length) line += " <i>Careful: every one of them also had " + twins.slice(0, 2).join(" and ") + ", so Umbra cannot tell which of these actually mattered.</i>";
+    return line;
+  });
+  if (!takeaways.length) {
+    takeaways.push("<b>No clear pattern in this batch.</b> Creatives with and without each detail performed about the same, or too few had it to compare (Umbra needs at least 2 on each side). Try changing one thing at a time in your next creatives, for example only the hook, so a difference can show up.");
+  }
+  if (silent) {
+    return {
+      count: rows.length, measureName: measureName, goal: goal, findings: findings, comparisons: comparisons,
+      strength: strength, typical: function (list) { return fmtTypical(median(list)); }
+    };
+  }
+  var trustNote = rows.length < 30
+    ? "<b>Based on " + rows.length + " creatives, so treat every pattern here as a hint, not a rule.</b> Patterns start to be worth acting on from about 30 creatives."
+    : "<b>Based on " + rows.length + " creatives.</b> Each pattern below says how strong it is.";
+
+  // Hook and hold: did people stop scrolling (3-second views / views), and how much did they watch (watch time / length)?
+  rows.forEach(function (c) {
+    var isVideo = c.format !== "static image" && c.format !== "carousel";
+    c.hookRate = isVideo && c.v3 !== null && c.views > 0 ? Math.min(1, c.v3 / c.views) : null;
+    c.watchedShare = isVideo && c.watch !== null && c.length > 0 ? Math.min(1, c.watch / c.length) : null;
+  });
+  function avgOf(group, f) {
+    var have = group.filter(function (c) { return c[f] !== null; });
+    if (have.length < 2) return null;
+    return { avg: have.reduce(function (s, c) { return s + c[f]; }, 0) / have.length, n: have.length };
+  }
+  function holdLine(name, f, meaning) {
+    var a = avgOf(top, f), b = avgOf(bottom, f);
+    if (!a || !b) return "<li><b>" + name + ":</b> needs this filled in for at least 2 top and 2 bottom creatives. Not enough yet.</li>";
+    var diff = a.avg - b.avg;
+    var verdict = Math.abs(diff) < 0.05 ? "About the same in both groups, so this is probably not what separates them."
+      : (diff > 0 ? "Top performers do better here." : "Bottom performers actually do better here, so the problem is somewhere else (the offer, the call to action, or who saw it).");
+    return "<li><b>" + name + ":</b> top performers " + pct(a.avg) + " (from " + a.n + "), bottom performers " + pct(b.avg) + " (from " + b.n + "). " + meaning + " " + verdict + "</li>";
+  }
+  var anyHold = rows.some(function (c) { return c.hookRate !== null || c.watchedShare !== null; });
+  var holdBox = !anyHold ? '' : '<div class="box"><h3>Hook and hold (video only)</h3><ul>' +
+    holdLine("Stopped scrolling", "hookRate", "This is 3-second views divided by views: how many people the first moments grabbed.") +
+    holdLine("Share of the video watched", "watchedShare", "This is average watch time divided by length.") +
+    '</ul><p class="note">These only work for videos where you filled in 3-second views, watch time and length. Static images and carousels are left out.</p></div>';
+
+  function dash(x) { return x === null || x === "" ? "-" : x; }
+
+  // Ranked table: optional columns only appear when at least one row has them filled in
+  var COLS = [
+    ["Rank", function (c, i) { return i + 1; }],
+    ["Group", function (c) { return c.group; }],
+    ["#", function (c) { return c.n; }],
+    ["Description", function (c) { return esc(c.desc || "(no description)") + (c.cname || c.date ? '<br><span class="note">' + esc([c.cname, c.date].filter(Boolean).join(", ")) + '</span>' : ''); }],
+    ["Format", function (c) { return esc(c.format); }],
+    ["Talking creator", function (c) { return c.creator; }],
+    ["Hook", function (c) { return esc(dash(c.hook)); }],
+    ["Platform", function (c) { return esc(dash(c.platform)); }, "platform"],
+    ["Creator size", function (c) { return esc(dash(c.size ? c.size.split(" ")[0] : "")); }, "size"],
+    ["Length (sec)", function (c) { return dash(c.length); }, "length"],
+    ["Call to action", function (c) { return esc(dash(c.cta)); }, "cta"],
+    ["Stopped scrolling", function (c) { return c.hookRate === null ? "-" : pct(c.hookRate); }, "hookRate"],
+    ["Watched", function (c) { return c.watchedShare === null ? "-" : pct(c.watchedShare); }, "watchedShare"],
+    [measureName, function (c) { return c.scoreText; }]
+  ].filter(function (col) { return !col[2] || rows.some(function (c) { return c[col[2]] !== null && c[col[2]] !== ""; }); });
+  var table = '<div class="wrap"><table><tr>' + COLS.map(function (col) { return '<th>' + esc(col[0]) + '</th>'; }).join("") + '</tr>' +
+    rows.map(function (c, i) {
+      return '<tr class="' + c.group + '">' + COLS.map(function (col) { return '<td>' + col[1](c, i) + '</td>'; }).join("") + '</tr>';
+    }).join("") + '</table></div>';
+
+  // Step 7: the short answer, in one paragraph, built only from what the analysis found
+  var shortAnswer;
+  if (findings.length) {
+    var f0 = findings[0], s0 = strength(f0);
+    shortAnswer = "Across " + rows.length + " creatives ranked by " + measureName + ", the clearest difference is that creatives with " + f0.t.label +
+      (f0.diff > 0 ? " did better" : " did worse") + " (typical " + fmtTypical(median(f0.withT)) + " with it, " + fmtTypical(median(f0.withoutT)) + " without). " +
+      (s0.word === "Hint" ? "This is a hint, not a rule: " + s0.why + "." : "Strength: " + s0.word.toLowerCase() + ", " + s0.why + ".") +
+      (takeaways.length > 1 ? " " + (takeaways.length - 1) + " more pattern" + (takeaways.length > 2 ? "s are" : " is") + " listed below." : "");
+  } else {
+    shortAnswer = "Across " + rows.length + " creatives ranked by " + measureName + ", no detail clearly separated the winners from the losers. Change one thing at a time in your next creatives so a difference can show up.";
+  }
+  var today = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+
+  // Plain-text version for "Copy summary" (pastes cleanly into an email or Slack)
+  lastShortAnswer = shortAnswer;
+  summaryText = reportTitle() + "\n" + today + "\n\n" +
+    "SHORT ANSWER\n" + shortAnswer + "\n\n" +
+    "PATTERNS, STRONGEST FIRST\n" + takeaways.map(function (t, i) { return (i + 1) + ". " + plain(t); }).join("\n") + "\n\n" +
+    (checks.length ? "CHECK BEFORE TRUSTING\n" + checks.map(function (c) { return "- " + c; }).join("\n") + "\n\n" : "") +
+    "HOW THIS WAS RANKED\nBy " + measureName + ". " + measureExplain + "\n\n" +
+    "Honest limits: this describes these " + rows.length + " creatives only. It does not predict future results or prove cause and effect.\n" +
+    "Made with Umbra.";
+
+  res.innerHTML =
+    '<div class="reportbar noprint">' +
+      '<button id="openreport">Open as report</button>' +
+      '<button id="backbtn">Back to editing</button>' +
+      '<button id="printbtn">Print / Save as PDF</button>' +
+      '<button id="copysum">Copy summary</button> <button id="savelib">Save to Library</button> <span id="copymsg" class="note"></span> <span id="libsavemsg"></span>' +
+    '</div>' +
+    '<div class="stale noprint" id="stalebanner" style="display:none"><b>These results are out of date.</b> You changed the table after analyzing. <button id="rerun">Update results</button></div>' +
+    '<h2 id="reporttitle">' + esc(reportTitle()) + '</h2>' +
+    '<p class="note">' + today + ' &middot; ' + rows.length + ' creatives &middot; ranked by ' + esc(measureName) + '</p>' +
+
+    '<div class="box short"><b>The short answer:</b> ' + esc(shortAnswer) + '</div>' +
+    (checks.length ? '<div class="box"><b>Check these before trusting the results:</b><ul><li>' + checks.map(esc).join("</li><li>") + '</li></ul></div>' : '') +
+
+    '<div class="box"><h3>Patterns, strongest first</h3><p>' + trustNote + '</p><ol><li>' + takeaways.join("</li><li>") + '</li></ol>' +
+    '<p class="note">How to read this: Umbra looks at all ' + rows.length + ' creatives, not just the top and bottom groups. "Typical" means the middle value, so one freak result cannot drag it. Post date is not analysed yet.</p>' +
+    '<p class="note">Honest limits: this only describes these creatives. It does not predict future results, and it cannot tell whether a pattern caused the result or just happened alongside it.</p></div>' +
+
+    '<div class="box"><h3>What the TOP performers have in common</h3>' + describe(top, topC, bottom, botC, "bottom") +
+    (winWords.length ? '<p>Words that appear in 2 or more top descriptions and in none of the bottom ones: <b>' + winWords.map(esc).join(", ") + '</b></p>' : '') + '</div>' +
+
+    '<div class="box"><h3>What the BOTTOM performers share</h3>' + describe(bottom, botC, top, topC, "top") +
+    (loseWords.length ? '<p>Words that appear in 2 or more bottom descriptions and in none of the top ones: <b>' + loseWords.map(esc).join(", ") + '</b></p>' : '') + '</div>' +
+
+    holdBox +
+
+    '<div class="box"><b>How Umbra ranked them:</b> by <b>' + esc(measureName) + '</b>. ' + measureExplain +
+    '<br>Top performers = the best ' + k + '. Bottom performers = the worst ' + k + '.' +
+    (rows.length > 2 * k ? ' The ' + (rows.length - 2 * k) + ' in the middle are left out of those two groups so the contrast is clearer.' : '') + '</div>' +
+
+    '<h3>All creatives, ranked</h3>' + table +
+
+    aiBoxHtml();
+
+  document.getElementById("openreport").onclick = function () { setReportMode(true); };
+  document.getElementById("backbtn").onclick = function () { setReportMode(false); };
+  document.getElementById("printbtn").onclick = function () { window.print(); };
+  document.getElementById("rerun").onclick = function () { analyze(); if (!lastAnalysis) setReportMode(false); };
+  document.getElementById("savelib").onclick = function () { saveToLibrary(false); };
+  if (currentId) document.getElementById("savelib").textContent = "Save changes to Library";
+  document.getElementById("copysum").onclick = function () {
+    var msg = document.getElementById("copymsg");
+    function fallback() {
+      msg.innerHTML = 'Your browser blocked copying. Select the text below and press Ctrl+C:<br><textarea rows="8" style="width:100%" readonly>' + esc(summaryText) + '</textarea>';
+      var ta = msg.querySelector("textarea"); ta.focus(); ta.select();
+    }
+    try { navigator.clipboard.writeText(summaryText).then(function () { msg.textContent = "Copied. Paste it into an email or Slack."; }, fallback); }
+    catch (e) { fallback(); }
+  };
+
+  // What the AI write-up gets: the same facts shown on screen, nothing more
+  lastAnalysis = {
+    ranked_by: measureName, how: measureExplain, creatives_count: rows.length,
+    top_group_size: k, bottom_group_size: k, trust: plain(trustNote),
+    warnings: checks,
+    top_group_shares: plain(describe(top, topC, bottom, botC, "bottom")),
+    bottom_group_shares: plain(describe(bottom, botC, top, topC, "top")),
+    patterns: takeaways.map(plain),
+    hook_and_hold: holdBox ? plain(holdBox) : "not available",
+    creatives: rows.map(function (c, i) {
+      var o = { rank: i + 1, group: c.group, description: c.desc, format: c.format, talking_creator: c.creator, hook: c.hook, result: c.scoreText };
+      if (c.platform) o.platform = c.platform;
+      if (c.size) o.creator_size = c.size;
+      if (c.length !== null) o.length_sec = c.length;
+      if (c.cta) o.call_to_action = c.cta;
+      if (c.hookRate !== null) o.stopped_scrolling = pct(c.hookRate);
+      if (c.watchedShare !== null) o.share_watched = pct(c.watchedShare);
+      return o;
+    })
+  };
+  aiRun++; // any write-up still on its way belongs to the old results
+  wireAI();
+
+  try { res.scrollIntoView({ behavior: "smooth" }); } catch (e) { res.scrollIntoView(); }
+}
+
+if (!loadDraft()) loadExamples();
+// ---------- Step 6: plain-English write-up by Claude (optional) ----------
+// The key is typed into this page and, if the user ticks the box, kept in this browser's storage.
+// It is never written into umbra.html, so sending someone the file never sends the key.
+var KEY_STORE = "umbra-claude-key";
+var AI_MODEL = "claude-opus-5-5";
+var lastAnalysis = null;
+var summaryText = "";
+
+// Any unexpected error shows up on the page instead of failing silently
+window.addEventListener("error", function (e) {
+  var msg = document.getElementById("analyzemsg");
+  if (msg) msg.innerHTML = '<span class="error">Something went wrong: ' + esc(e.message || "unknown error") + '. Try opening umbra.html in Chrome or Edge, and tell Claude what this message says.</span>';
+});   // filled in by analyze(); what gets sent to Claude
+var aiRun = 0;             // stops an old answer from showing after the results changed
+
+function getSavedKey() { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } }
+function setSavedKey(k) { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); } catch (e) {} }
+function plain(html) { var d = document.createElement("div"); d.innerHTML = html; return d.textContent.replace(/\s+/g, " ").trim(); }
+
+function aiBoxHtml() {
+  return '<details class="box" id="aibox"><summary>AI write-up (optional, needs a paid Claude API key)</summary>' +
+    '<p class="note">Claude reads the numbers and patterns above and writes a short summary you could paste into a client email. It costs a few US cents each time, charged to your own Claude API account. Your creatives\' details are sent to Anthropic to do this.</p>' +
+    '<div id="aikeyrow"' + (getSavedKey() ? ' style="display:none"' : '') + '>' +
+      '<p><label for="aikey">Your Claude API key: </label><input type="password" id="aikey" autocomplete="off" placeholder="sk-ant-..." style="width:260px"> ' +
+      '<label><input type="checkbox" id="airemember" checked> Remember it on this computer</label></p>' +
+      '<p class="note">No key yet? Get one at console.anthropic.com (API keys), and add a little credit under Billing. ' +
+      'If you tick "Remember", the key is stored in this browser only, not in the umbra.html file, so sharing the file never shares your key. ' +
+      'Anyone using this computer and browser could find it, so untick it on a shared computer.</p></div>' +
+    '<p><button id="aigo">Write it up with Claude</button> <button id="aiforget"' + (getSavedKey() ? '' : ' style="display:none"') + '>Forget my key</button></p>' +
+    '<div id="aiout"></div></details>';
+}
+
+function wireAI() {
+  document.getElementById("aigo").onclick = runAI;
+  document.getElementById("aiforget").onclick = function () {
+    setSavedKey("");
+    document.getElementById("aikeyrow").style.display = "";
+    this.style.display = "none";
+    document.getElementById("aiout").innerHTML = '<p>Key forgotten. It is no longer stored in this browser.</p>';
+  };
+}
+
+function aiPrompt(a) {
+  return "You are helping a creator-marketing team understand which of their campaign creatives worked and why.\n" +
+    "Below is the analysis a simple tool already did. Write a short plain-English summary for a busy marketer.\n\n" +
+    "Rules:\n" +
+    "- Use only the facts and numbers given here. Never invent numbers, causes or industry benchmarks.\n" +
+    "- Be honest about how much the data can support. If the batch is small or a pattern is labelled a hint, say so plainly.\n" +
+    "- If two details always appeared together, do not credit one of them alone.\n" +
+    "- Plain words, no jargon, no em dashes, no markdown bold or tables.\n" +
+    "- Format exactly as: a line '## The short answer' then 2 to 3 sentences; '## What the winners had' then 2 to 4 lines starting with '- '; " +
+    "'## What held the losers back' then 2 to 4 lines starting with '- '; '## What to try next' then 3 lines starting with '- ', each one specific and testable; " +
+    "'## How sure we are' then 1 to 2 sentences.\n\n" +
+    "ANALYSIS (JSON):\n" + JSON.stringify(a, null, 1);
+}
+
+// Turn Claude's simple "## heading / - bullet" text into safe HTML (everything is escaped first)
+function renderAI(text) {
+  var html = "", inList = false;
+  text.split("\n").forEach(function (line) {
+    line = line.trim();
+    if (!line) return;
+    if (/^#+\s*/.test(line)) { if (inList) { html += "</ul>"; inList = false; } html += "<h4>" + esc(line.replace(/^#+\s*/, "")) + "</h4>"; return; }
+    if (/^[-*•]\s+/.test(line)) { if (!inList) { html += "<ul>"; inList = true; } html += "<li>" + esc(line.replace(/^[-*•]\s+/, "").replace(/\*\*/g, "")) + "</li>"; return; }
+    if (inList) { html += "</ul>"; inList = false; }
+    html += "<p>" + esc(line.replace(/\*\*/g, "")) + "</p>";
+  });
+  if (inList) html += "</ul>";
+  return html;
+}
+
+function runAI() {
+  var out = document.getElementById("aiout");
+  var btn = document.getElementById("aigo");
+  if (!lastAnalysis) { out.innerHTML = '<p class="error">Click Analyze first.</p>'; return; }
+
+  var key = getSavedKey();
+  var typed = document.getElementById("aikey") ? document.getElementById("aikey").value.replace(/\s+/g, "") : "";
+  if (!key) key = typed;
+  if (!key) { out.innerHTML = '<p class="error">Paste your Claude API key in the box above first.</p>'; document.getElementById("aikey").focus(); return; }
+  if (key.indexOf("sk-ant-") !== 0) { out.innerHTML = '<p class="error">That does not look like a Claude API key. They start with "sk-ant-". Check you copied the whole thing.</p>'; return; }
+
+  var myRun = ++aiRun;
+  btn.disabled = true; btn.textContent = "Writing...";
+  out.innerHTML = '<p class="note">Claude is reading your results. This usually takes 10 to 40 seconds.</p>';
+
+  function done() { btn.disabled = false; btn.textContent = "Write it up again"; }
+  function fail(msg) { if (myRun !== aiRun) return; done(); out.innerHTML = '<p class="error">' + msg + '</p>'; }
+
+  var controller = window.AbortController ? new AbortController() : null;
+  var timer = setTimeout(function () { if (controller) controller.abort(); }, 120000);
+
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    signal: controller ? controller.signal : undefined,
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "server-side-fallback-2026-07-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: 8000,
+      fallbacks: "default",
+      output_config: { effort: "medium" },
+      messages: [{ role: "user", content: aiPrompt(lastAnalysis) }]
+    })
+  }).then(function (r) {
+    return r.json().catch(function () { return {}; }).then(function (body) { return { status: r.status, body: body }; });
+  }).then(function (res) {
+    clearTimeout(timer);
+    if (myRun !== aiRun) return; // results changed while waiting; ignore this old answer
+    var b = res.body || {}, msg = (b.error && b.error.message) || "";
+    if (res.status === 401) {
+      // A saved key that stopped working (deleted or changed): forget it so the box comes back
+      setSavedKey("");
+      document.getElementById("aikeyrow").style.display = "";
+      document.getElementById("aiforget").style.display = "none";
+      return fail("Claude rejected that key. It may be mistyped, deleted, or from a different account. Paste it again in the box above, making sure you copied all of it.");
+    }
+    if (res.status === 403) return fail("That key is not allowed to use Claude. Check its permissions at console.anthropic.com.");
+    if (res.status === 429) return fail("Too many requests on your account right now. Wait a minute and try again.");
+    if (res.status === 529 || res.status >= 500) return fail("Claude is busy or having a problem right now. Try again in a minute.");
+    if (/credit|billing|balance/i.test(msg)) return fail("Your Claude account has no credit left. Add some under Billing at console.anthropic.com, then try again.");
+    if (res.status !== 200) return fail("Something went wrong (" + res.status + "). Claude said: " + esc(msg || "no details"));
+    if (b.stop_reason === "refusal") return fail("Claude declined to write this one. Try again, or check your descriptions for anything unusual.");
+    var text = (b.content || []).filter(function (c) { return c.type === "text"; }).map(function (c) { return c.text; }).join("\n").trim();
+    if (!text) return fail("Claude sent back an empty answer. Try again.");
+
+    // Only remember the key once it has actually worked
+    if (!getSavedKey() && document.getElementById("airemember").checked) {
+      setSavedKey(key);
+      document.getElementById("aikeyrow").style.display = "none";
+      document.getElementById("aiforget").style.display = "";
+    }
+    var u = b.usage || {};
+    var cost = ((u.input_tokens || 0) * 4 + (u.output_tokens || 0) * 20) / 1e6;
+    done();
+    document.getElementById("aibox").classList.add("hasout");
+    out.innerHTML = renderAI(text) +
+      (b.stop_reason === "max_tokens" ? '<p class="error">The write-up got cut off. Click "Write it up again".</p>' : '') +
+      '<p class="note">Written by Claude from the analysis above. Check it against the numbers before sending it to a client. ' +
+      'This write-up cost about $' + (cost < 0.01 ? "0.01 or less" : cost.toFixed(2)) + '.</p>' +
+      '<p><button id="aicopy">Copy write-up</button></p>';
+    document.getElementById("aicopy").onclick = function () {
+      var btn2 = this;
+      try { navigator.clipboard.writeText(text.replace(/^#+\s*/gm, "")).then(function () { btn2.textContent = "Copied"; }, function () { btn2.textContent = "Copy blocked: select the text and press Ctrl+C"; }); }
+      catch (e) { btn2.textContent = "Copy blocked: select the text and press Ctrl+C"; }
+    };
+  }).catch(function (err) {
+    clearTimeout(timer);
+    if (err && err.name === "AbortError") return fail("Claude took too long to answer. Try again.");
+    fail(navigator.onLine === false ? "You look offline. Connect to the internet and try again." : "Could not reach Claude. Check your internet connection, or a work network may be blocking it.");
+  });
+}
+
+// ---------- Step 8: Library (saved analyses, kept in this browser) ----------
+var LIB_KEY = "umbra-library-v1";
+var currentId = null;        // the saved analysis now open in the editor, if any
+var lastShortAnswer = "";
+var libDeleted = null;       // last deleted item, for Undo
+
+function libLoad() {
+  var raw;
+  try { raw = localStorage.getItem(LIB_KEY); } catch (e) { return { items: [], blocked: true }; }
+  if (!raw) return { items: [] };
+  try {
+    var data = JSON.parse(raw);
+    return { items: Array.isArray(data) ? data.filter(function (x) { return x && x.id && Array.isArray(x.rows); }) : [] };
+  } catch (e) {
+    // Damaged data: keep a copy aside instead of throwing it away
+    try { localStorage.setItem(LIB_KEY + "-damaged-" + Date.now(), raw); localStorage.setItem(LIB_KEY, "[]"); } catch (e2) {}
+    return { items: [], damaged: true };
+  }
+}
+function libSave(items) {
+  try { localStorage.setItem(LIB_KEY, JSON.stringify(items)); return ""; }
+  catch (e) {
+    if (e && (e.name === "QuotaExceededError" || /quota/i.test(e.message))) return "Your browser's storage for Umbra is full. Click Export backup, then delete some old analyses.";
+    return "This window cannot save. Open umbra.html in Chrome or Edge to use the Library.";
+  }
+}
+function newId() { return "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function uniqueName(name, items, skipId) {
+  var taken = {}; items.forEach(function (x) { if (x.id !== skipId) taken[x.name.toLowerCase()] = 1; });
+  if (!taken[name.toLowerCase()]) return name;
+  for (var i = 2; ; i++) if (!taken[(name + " (" + i + ")").toLowerCase()]) return name + " (" + i + ")";
+}
+function fmtDate(ms) { return new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) + ", " + new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }); }
+var GOAL_NAMES = { cpa: "cost per conversion", conv: "conversions", ctr: "click rate", views: "views" };
+
+// Save what is in the editor right now. asNew = always make a separate entry.
+function saveToLibrary(asNew) {
+  var msg = document.getElementById("libsavemsg");
+  var lib = libLoad();
+  if (lib.blocked) { msg.innerHTML = '<span class="error">This window cannot save. Open umbra.html in Chrome or Edge to use the Library.</span>'; return; }
+  var rows = Array.prototype.filter.call(tbody.rows, function (r) { return !rowIsEmpty(r); }).map(rowData);
+  var campaign = document.getElementById("campaign").value.trim();
+  var existing = !asNew && currentId ? lib.items.filter(function (x) { return x.id === currentId; })[0] : null;
+  var entry = existing || { id: newId(), name: uniqueName(campaign || "Untitled analysis", lib.items) };
+  entry.campaign = campaign;
+  entry.rows = rows;
+  entry.goal = document.getElementById("goal").value;
+  entry.more = !table.classList.contains("compact");
+  entry.count = rows.length;
+  entry.finding = lastShortAnswer;
+  entry.savedAt = Date.now();
+  if (!existing) lib.items.push(entry);
+  var err = libSave(lib.items);
+  if (err) { msg.innerHTML = '<span class="error">' + esc(err) + '</span>'; return; }
+  currentId = entry.id;
+  updateLibCount();
+  msg.innerHTML = (existing ? 'Updated "' + esc(entry.name) + '" in your Library. <button id="saveascopy">Save as a new copy instead</button>' : 'Saved to your Library as "' + esc(entry.name) + '".') +
+    ' <button id="gotolib">Open Library</button>';
+  document.getElementById("gotolib").onclick = function () { showView("library"); };
+  var copyBtn = document.getElementById("saveascopy");
+  if (copyBtn) copyBtn.onclick = function () { saveToLibrary(true); };
+}
+
+function updateLibCount() {
+  var n = libLoad().items.length;
+  document.getElementById("navlib").textContent = "Library" + (n ? " (" + n + ")" : "");
+}
+
+function showView(which) {
+  document.body.classList.toggle("libmode", which === "library");
+  document.body.classList.remove("reportmode");
+  document.getElementById("navanalyze").disabled = which !== "library";
+  document.getElementById("navlib").disabled = which === "library";
+  if (which === "library") { renderLibrary(); fillCompareChoices(); }
+  window.scrollTo(0, 0);
+}
+
+function renderLibrary() {
+  var box = document.getElementById("liblist");
+  var lib = libLoad();
+  var q = document.getElementById("libsearch").value.trim().toLowerCase();
+  var note = "";
+  if (lib.blocked) note = '<p class="error">This window cannot read saved analyses. Open umbra.html in Chrome or Edge.</p>';
+  if (lib.damaged) note = '<p class="error">Your saved Library could not be read, so it is showing empty. A copy of the damaged data was kept aside; tell Claude if this happens.</p>';
+  var items = lib.items.slice().sort(function (a, b) { return b.savedAt - a.savedAt; }).filter(function (x) {
+    return !q || (x.name + " " + (x.campaign || "") + " " + (x.finding || "") + " " + x.rows.map(function (r) { return [r.desc, r.cname, r.platform].join(" "); }).join(" ")).toLowerCase().indexOf(q) >= 0;
+  });
+  if (!lib.items.length) { box.innerHTML = note + '<p>Nothing saved yet. Run an analysis, then click <b>Save to Library</b> above the results.</p>'; return; }
+  if (!items.length) { box.innerHTML = note + '<p>No saved analysis matches "' + esc(q) + '".</p>'; return; }
+  box.innerHTML = note + '<div class="wrap"><table><tr><th>Name</th><th>Saved</th><th>Creatives</th><th>Ranked by</th><th>Top finding when saved</th><th></th></tr>' +
+    items.map(function (x) {
+      var f = x.finding || "";
+      return '<tr data-id="' + esc(x.id) + '"><td class="libname"><b>' + esc(x.name) + '</b>' + (x.id === currentId ? '<br><span class="note">open now</span>' : '') + '</td><td>' + fmtDate(x.savedAt) + '</td><td>' + x.count + '</td><td>' + esc(GOAL_NAMES[x.goal] || x.goal) + '</td>' +
+        '<td class="note">' + esc(f.length > 180 ? f.slice(0, 180) + "..." : f || "-") + '</td>' +
+        '<td style="white-space:nowrap"><button class="lopen">Open</button> <button class="lrename">Rename</button> <button class="ldup">Duplicate</button> <button class="ldel">Delete</button></td></tr>';
+    }).join("") + '</table></div>';
+  Array.prototype.forEach.call(box.querySelectorAll("tr[data-id]"), function (tr) {
+    var id = tr.getAttribute("data-id");
+    tr.querySelector(".lopen").onclick = function () { openFromLibrary(id); };
+    tr.querySelector(".ldup").onclick = function () { libDuplicate(id); };
+    tr.querySelector(".ldel").onclick = function () { libDelete(id); };
+    tr.querySelector(".lrename").onclick = function () { libStartRename(tr, id); };
+  });
+}
+
+function libMsg(html) { document.getElementById("libmsg").innerHTML = html; }
+
+function libStartRename(tr, id) {
+  var lib = libLoad(), item = lib.items.filter(function (x) { return x.id === id; })[0];
+  if (!item) return renderLibrary();
+  var cell = tr.querySelector(".libname");
+  cell.innerHTML = '<input class="lnewname" maxlength="120" style="width:200px"> <button class="lok">Save</button> <button class="lcancel">Cancel</button>';
+  var input = cell.querySelector(".lnewname"); input.value = item.name; input.focus(); input.select();
+  function commit() {
+    var name = input.value.trim();
+    if (!name) { libMsg('<span class="error">A name cannot be empty.</span>'); input.focus(); return; }
+    var fresh = libLoad();
+    var it = fresh.items.filter(function (x) { return x.id === id; })[0];
+    if (!it) return renderLibrary();
+    var finalName = uniqueName(name, fresh.items, id);
+    it.name = finalName;
+    var err = libSave(fresh.items);
+    libMsg(err ? '<span class="error">' + esc(err) + '</span>' : (finalName !== name ? 'That name was taken, so it is called "' + esc(finalName) + '".' : 'Renamed.'));
+    renderLibrary(); fillCompareChoices();
+  }
+  cell.querySelector(".lok").onclick = commit;
+  cell.querySelector(".lcancel").onclick = renderLibrary;
+  input.onkeydown = function (e) { if (e.key === "Enter") commit(); if (e.key === "Escape") renderLibrary(); };
+}
+
+function libDuplicate(id) {
+  var lib = libLoad(), item = lib.items.filter(function (x) { return x.id === id; })[0];
+  if (!item) return renderLibrary();
+  var copy = JSON.parse(JSON.stringify(item));
+  copy.id = newId(); copy.name = uniqueName(item.name + " copy", lib.items); copy.savedAt = Date.now();
+  lib.items.push(copy);
+  var err = libSave(lib.items);
+  libMsg(err ? '<span class="error">' + esc(err) + '</span>' : 'Made a copy called "' + esc(copy.name) + '".');
+  updateLibCount(); renderLibrary(); fillCompareChoices();
+}
+
+function libDelete(id) {
+  var lib = libLoad(), item = lib.items.filter(function (x) { return x.id === id; })[0];
+  if (!item) return renderLibrary();
+  var err = libSave(lib.items.filter(function (x) { return x.id !== id; }));
+  if (err) { libMsg('<span class="error">' + esc(err) + '</span>'); return; }
+  if (currentId === id) currentId = null;
+  libDeleted = item;
+  libMsg('Deleted "' + esc(item.name) + '". <button id="libundo">Undo</button>');
+  document.getElementById("libundo").onclick = function () {
+    var fresh = libLoad();
+    if (libDeleted && !fresh.items.some(function (x) { return x.id === libDeleted.id; })) fresh.items.push(libDeleted);
+    var e2 = libSave(fresh.items);
+    libMsg(e2 ? '<span class="error">' + esc(e2) + '</span>' : 'Brought back "' + esc(libDeleted.name) + '".');
+    libDeleted = null; updateLibCount(); renderLibrary(); fillCompareChoices();
+  };
+  updateLibCount(); renderLibrary(); fillCompareChoices();
+}
+
+function openFromLibrary(id) {
+  var item = libLoad().items.filter(function (x) { return x.id === id; })[0];
+  if (!item) return renderLibrary();
+  // Keep what was in the editor so the user can get it back
+  var before = { rows: Array.prototype.map.call(tbody.rows, rowData), goal: document.getElementById("goal").value, campaign: document.getElementById("campaign").value, id: currentId };
+  restoring = true;
+  tbody.innerHTML = "";
+  if (item.rows.length) item.rows.forEach(function (d) { addRow(d); }); else addRow();
+  restoring = false;
+  if (document.querySelector('#goal option[value="' + item.goal + '"]')) document.getElementById("goal").value = item.goal;
+  document.getElementById("campaign").value = item.campaign || "";
+  setMore(!!item.more);
+  currentId = item.id;
+  saveDraft();
+  showView("analyze");
+  analyze();
+  var m = document.getElementById("tablemsg");
+  m.innerHTML = 'Opened "' + esc(item.name) + '". <button id="undoopen">Undo</button>';
+  document.getElementById("undoopen").onclick = function () {
+    restoring = true; tbody.innerHTML = ""; before.rows.forEach(addRow); restoring = false;
+    document.getElementById("goal").value = before.goal; document.getElementById("campaign").value = before.campaign;
+    currentId = before.id; saveDraft();
+    document.getElementById("results").innerHTML = ""; document.getElementById("analyzemsg").innerHTML = "";
+    m.innerHTML = "Your previous table is back.";
+  };
+}
+
+function libExport() {
+  var lib = libLoad();
+  if (!lib.items.length) { libMsg("Nothing to export yet."); return; }
+  var blob = new Blob([JSON.stringify({ umbraLibrary: 1, exportedAt: new Date().toISOString(), items: lib.items }, null, 1)], { type: "application/json" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "umbra-library-" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+  libMsg("Downloaded a backup of " + lib.items.length + " analys" + (lib.items.length === 1 ? "is" : "es") + ". Keep it somewhere safe, like Google Drive. If nothing downloaded, this window blocks downloads: open umbra.html in Chrome or Edge.");
+}
+
+function libImport(file) {
+  var reader = new FileReader();
+  reader.onload = function () {
+    var data;
+    try { data = JSON.parse(reader.result); } catch (e) { libMsg('<span class="error">That file is not an Umbra backup. Pick the .json file you got from Export backup.</span>'); return; }
+    var incoming = data && Array.isArray(data.items) ? data.items : null;
+    if (!incoming) { libMsg('<span class="error">That file is not an Umbra backup. Pick the .json file you got from Export backup.</span>'); return; }
+    var lib = libLoad(), have = {}, added = 0, skipped = 0;
+    lib.items.forEach(function (x) { have[x.id] = 1; });
+    incoming.forEach(function (x) {
+      if (!x || !x.id || !Array.isArray(x.rows)) { skipped++; return; }
+      if (have[x.id]) { skipped++; return; }
+      x.name = uniqueName(String(x.name || "Imported analysis"), lib.items);
+      x.count = x.rows.length; x.savedAt = x.savedAt || Date.now();
+      lib.items.push(x); have[x.id] = 1; added++;
+    });
+    var err = libSave(lib.items);
+    libMsg(err ? '<span class="error">' + esc(err) + '</span>' : "Added " + added + " analys" + (added === 1 ? "is" : "es") + " from the backup." + (skipped ? " Skipped " + skipped + " already in your Library." : ""));
+    updateLibCount(); renderLibrary(); fillCompareChoices();
+  };
+  reader.onerror = function () { libMsg('<span class="error">Could not read that file.</span>'); };
+  reader.readAsText(file);
+}
+
+document.getElementById("navanalyze").onclick = function () { showView("analyze"); };
+document.getElementById("navlib").onclick = function () { showView("library"); };
+document.getElementById("libsearch").oninput = renderLibrary;
+document.getElementById("libexport").onclick = libExport;
+document.getElementById("libimport").onchange = function (e) { if (e.target.files[0]) libImport(e.target.files[0]); e.target.value = ""; };
+// Starting a fresh table means it's no longer the saved one
+document.getElementById("clear").addEventListener("click", function () { currentId = null; });
+document.getElementById("examples").addEventListener("click", function () { currentId = null; });
+updateLibCount();
+
+// ---------- Step 9: Compare two saved analyses ----------
+function fillCompareChoices() {
+  var lib = libLoad(), box = document.getElementById("comparebox");
+  if (lib.items.length < 2) {
+    box.innerHTML = '<p class="note">Save at least two analyses (for example two campaigns) to compare them here.</p>';
+    return;
+  }
+  var items = lib.items.slice().sort(function (a, b) { return b.savedAt - a.savedAt; });
+  function opts(sel) { return items.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === sel ? " selected" : "") + '>' + esc(x.name) + ' (' + x.count + ' creatives)</option>'; }).join(""); }
+  var prevA = document.getElementById("cmpA"), prevB = document.getElementById("cmpB"), prevG = document.getElementById("cmpGoal");
+  var a = prevA && prevA.value || items[1].id, b = prevB && prevB.value || items[0].id, g = prevG && prevG.value || "";
+  box.innerHTML =
+    '<p><label>Older or first campaign: <select id="cmpA">' + opts(a) + '</select></label> ' +
+    '<button id="cmpSwap" title="Swap the two">Swap</button> ' +
+    '<label>Newer or second: <select id="cmpB">' + opts(b) + '</select></label></p>' +
+    '<p><label>Judge both by: <select id="cmpGoal">' +
+      '<option value="">what each one was saved with</option>' +
+      Object.keys(GOAL_NAMES).map(function (k) { return '<option value="' + k + '"' + (k === g ? " selected" : "") + '>' + GOAL_NAMES[k] + '</option>'; }).join("") +
+    '</select></label> <button id="cmpGo"><b>Compare</b></button></p>';
+  document.getElementById("cmpGo").onclick = runCompare;
+  document.getElementById("cmpSwap").onclick = function () {
+    var A = document.getElementById("cmpA"), B = document.getElementById("cmpB"), t = A.value; A.value = B.value; B.value = t;
+    if (document.getElementById("compareout").innerHTML) runCompare();
+  };
+}
+
+function runCompare() {
+  var out = document.getElementById("compareout");
+  var lib = libLoad();
+  function get(id) { return lib.items.filter(function (x) { return x.id === id; })[0]; }
+  var A = get(document.getElementById("cmpA").value), B = get(document.getElementById("cmpB").value);
+  if (!A || !B) { out.innerHTML = '<p class="error">One of those analyses was deleted. Pick again.</p>'; fillCompareChoices(); return; }
+  if (A.id === B.id) { out.innerHTML = '<p class="error">You picked the same analysis twice. Pick two different ones.</p>'; return; }
+  var chosen = document.getElementById("cmpGoal").value;
+  var goalA = chosen || A.goal, goalB = chosen || B.goal;
+  var ra = runAnalysis({ rows: A.rows, goal: goalA }), rb = runAnalysis({ rows: B.rows, goal: goalB });
+  if (ra.error || rb.error) {
+    out.innerHTML = '<p class="error">Cannot compare yet. ' + (ra.error ? '"' + esc(A.name) + '": ' + esc(ra.error) + ' ' : '') + (rb.error ? '"' + esc(B.name) + '": ' + esc(rb.error) : '') +
+      ' Open it from the Library to fix it, or choose a different "Judge both by".</p>';
+    return;
+  }
+
+  // Sort every detail that showed a pattern in either campaign into: held, flipped, only one side
+  var held = [], flipped = [], onlyA = [], onlyB = [];
+  var keys = {};
+  ra.findings.forEach(function (f) { keys[f.t.key] = 1; });
+  rb.findings.forEach(function (f) { keys[f.t.key] = 1; });
+  function inFindings(r, key) { return r.findings.some(function (f) { return f.t.key === key; }); }
+  Object.keys(keys).forEach(function (key) {
+    var ca = ra.comparisons[key], cb = rb.comparisons[key];
+    var fa = inFindings(ra, key), fb = inFindings(rb, key);
+    var item = { key: key, label: (ca || cb).t.label, ca: ca, cb: cb };
+    if (fa && fb) (ca.diff > 0) === (cb.diff > 0) ? held.push(item) : flipped.push(item);
+    else if (fa) onlyA.push(item);
+    else onlyB.push(item);
+  });
+  function size(x) { return Math.abs(x.ca ? x.ca.diff : 0) + Math.abs(x.cb ? x.cb.diff : 0); }
+  [held, flipped, onlyA, onlyB].forEach(function (l) { l.sort(function (x, y) { return size(y) - size(x); }); });
+
+  function side(r, c, name) {
+    if (!c) return esc(name) + ": not enough creatives with and without it to tell.";
+    var s = r.strength(c);
+    return esc(name) + ": " + (c.diff > 0 ? "did better" : "did worse") + " (typical " + esc(r.measureName) + " " + r.typical(c.withT) + " with it, " + r.typical(c.withoutT) + " without; " + s.word.toLowerCase() + ").";
+  }
+  function noGap(r, c, name) {
+    if (!c) return esc(name) + ": not enough creatives with and without it to tell.";
+    return esc(name) + ": no real difference (typical " + r.typical(c.withT) + " with it, " + r.typical(c.withoutT) + " without).";
+  }
+  function list(items, fn) {
+    if (!items.length) return '<p class="note">None.</p>';
+    return '<ul>' + items.slice(0, 8).map(function (x) { return '<li><b>' + esc(x.label) + '</b><br>' + fn(x) + '</li>'; }).join("") + '</ul>' +
+      (items.length > 8 ? '<p class="note">' + (items.length - 8) + ' smaller ones not shown.</p>' : '');
+  }
+
+  var sum = [];
+  if (held.length) sum.push(held.length + " pattern" + (held.length === 1 ? "" : "s") + " held in both campaigns, the biggest being creatives with " + held[0].label + " " + (held[0].ca.diff > 0 ? "doing better" : "doing worse") + " both times.");
+  if (flipped.length) sum.push(flipped.length + " flipped, for example " + flipped[0].label + " " + (flipped[0].ca.diff > 0 ? "helped in the first and hurt in the second" : "hurt in the first and helped in the second") + ".");
+  if (onlyA.length + onlyB.length) sum.push((onlyA.length + onlyB.length) + " showed up in only one campaign.");
+  if (!sum.length) sum.push("Neither campaign showed a clear pattern, so there is nothing to compare yet.");
+  var small = ra.count < 30 || rb.count < 30;
+  var goalNote = goalA !== goalB
+    ? '<p class="error">These two are judged by different measures (' + esc(ra.measureName) + ' and ' + esc(rb.measureName) + '), so a "flip" may only mean the goal changed. Pick one measure under "Judge both by" for a fair comparison.</p>' : '';
+
+  out.innerHTML =
+    '<p class="noprint"><button id="cmpPrint">Print / Save as PDF</button></p>' +
+    '<h2>What changed: ' + esc(A.name) + ' vs ' + esc(B.name) + '</h2>' +
+    '<p class="note">' + ra.count + ' and ' + rb.count + ' creatives &middot; judged by ' + esc(goalA === goalB ? ra.measureName : ra.measureName + ' / ' + rb.measureName) + '</p>' +
+    goalNote +
+    '<div class="box short"><b>The short answer:</b> ' + esc(sum.join(" ")) +
+      (small ? ' <b>Both batches are small, so treat this as hints.</b> A pattern that held twice is more believable than one that showed up once.' : '') + '</div>' +
+    '<div class="box"><h3>Held in both (most believable)</h3>' + list(held, function (x) { return side(ra, x.ca, A.name) + "<br>" + side(rb, x.cb, B.name); }) + '</div>' +
+    '<div class="box"><h3>Flipped</h3><p class="note">Something about the campaign may have changed (audience, offer, season, platform), or one of these was luck.</p>' +
+      list(flipped, function (x) { return side(ra, x.ca, A.name) + "<br>" + side(rb, x.cb, B.name); }) + '</div>' +
+    '<div class="box"><h3>Only in ' + esc(A.name) + '</h3>' + list(onlyA, function (x) { return side(ra, x.ca, A.name) + "<br>" + noGap(rb, x.cb, B.name); }) + '</div>' +
+    '<div class="box"><h3>Only in ' + esc(B.name) + '</h3>' + list(onlyB, function (x) { return noGap(ra, x.ca, A.name) + "<br>" + side(rb, x.cb, B.name); }) + '</div>' +
+    '<p class="note">Honest limits: two campaigns differ in many ways Umbra cannot see, like budget, audience and timing. Use this to decide what to test next, not as proof.</p>';
+  document.getElementById("cmpPrint").onclick = function () {
+    document.body.classList.add("printcompare");
+    window.print();
+    setTimeout(function () { document.body.classList.remove("printcompare"); }, 500);
+  };
+}
+
+</script>
+
+
+</html>

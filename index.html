@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Umbra: see why your creator content wins or loses</title>
+<meta name="description" content="Umbra compares your creator campaign creatives and tells you, in plain English, what the winners had that the losers did not.">
+<style>
+  :root { --bg: #ffffff; --fg: #111111; --muted: #555555; --line: #d0d0d0; --soft: #f4f4f4; --accent: #111111; --accentfg: #ffffff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141414; --fg: #eeeeee; --muted: #aaaaaa; --line: #3a3a3a; --soft: #1f1f1f; --accent: #eeeeee; --accentfg: #111111; color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg: #141414; --fg: #eeeeee; --muted: #aaaaaa; --line: #3a3a3a; --soft: #1f1f1f; --accent: #eeeeee; --accentfg: #111111; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: Arial, Helvetica, sans-serif; font-size: 17px; line-height: 1.55; margin: 0; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+  .logo { font-weight: bold; font-size: 20px; letter-spacing: 2px; }
+  a { color: inherit; }
+  .btn { display: inline-block; padding: 12px 20px; border: 2px solid var(--accent); text-decoration: none; font-weight: bold; margin: 4px 8px 4px 0; }
+  .btn.primary { background: var(--accent); color: var(--accentfg); }
+  .hero { padding: 40px 0 32px; }
+  .hero h1 { font-size: 40px; line-height: 1.15; margin: 0 0 16px; }
+  .hero p { font-size: 20px; color: var(--muted); max-width: 640px; }
+  section { padding: 32px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 26px; margin-top: 0; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .card { background: var(--soft); padding: 16px; }
+  .card b { display: block; margin-bottom: 4px; }
+  .quote { border-left: 4px solid var(--accent); padding: 8px 16px; background: var(--soft); }
+  .note { color: var(--muted); font-size: 15px; }
+  details { border-bottom: 1px solid var(--line); padding: 12px 0; }
+  summary { cursor: pointer; font-weight: bold; }
+  footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--muted); font-size: 15px; }
+  footer a { margin-right: 16px; }
+  .waitlist[hidden] { display: none !important; }
+  @media (max-width: 600px) { .hero h1 { font-size: 30px; } .hero p { font-size: 18px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">UMBRA</div>
+    <nav><a href="app.html">Open Umbra</a></nav>
+  </header>
+
+  <div class="hero">
+    <h1>See what's hidden in the shadows of your creative performance.</h1>
+    <p>Umbra compares your creator campaign posts and tells you, in plain English, what the winners had that the losers didn't. No dashboards to decode.</p>
+    <a class="btn primary" href="app.html">Try it free</a>
+    <a class="btn" href="sample-report.html">See a sample report</a>
+    <a class="btn waitlist" data-waitlist href="#" hidden>Join the waitlist</a>
+    <p class="note">Works in your browser. No sign-up. Your data stays on your computer.</p>
+  </div>
+
+  <section>
+    <h2>Who it's for</h2>
+    <p>Creator-marketing teams at agencies and brands who run campaigns with many creators and want to know <b>why</b> some posts worked, not just <b>which</b> ones did.</p>
+    <p>Your reporting tool already tells you reach, views and sales per creator. Umbra tells you what the best posts had in common: the hook, the format, the length, a talking creator or not, the call to action. Then it tells you how far to trust it.</p>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="card"><b>1. Paste your results</b>Copy rows from Google Sheets or Excel, or upload a CSV. Umbra reads your column names for you.</div>
+      <div class="card"><b>2. Pick what "winning" means</b>Lowest cost per sale, most sales, best click rate, or most views.</div>
+      <div class="card"><b>3. Read the short answer</b>What the winners shared, what held the losers back, and what to test next. Print it or copy it into an email.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Honest by design</h2>
+    <div class="quote">"Across 8 creatives ranked by cost per conversion, the clearest difference is that creatives with a 'result first' hook did better. This is a hint, not a rule: only 2 creatives with it and 6 without, so luck could explain it."</div>
+    <p>Small batches create fake patterns. Umbra labels every finding as a <b>hint</b>, <b>worth testing</b> or a <b>strong signal</b>, shows how many posts it rests on, and warns you when two details always appeared together so it can't tell which one mattered.</p>
+    <p><a href="sample-report.html">See a full sample report</a></p>
+  </section>
+
+  <section>
+    <h2>Pricing</h2>
+    <p>Free while Umbra is in early access. If you want team accounts, saved history across devices, or automatic data from Instagram and TikTok, <span class="waitlist" hidden>join the waitlist and</span> tell us what you'd pay for.</p>
+    <a class="btn waitlist" data-waitlist href="#" hidden>Join the waitlist</a>
+  </section>
+
+  <section>
+    <h2>Questions</h2>
+    <details><summary>Where does my data go?</summary><p>Nowhere. Umbra runs inside your browser and saves your work in that browser only. Nothing is uploaded to us. The one exception is the optional AI write-up: if you add your own Claude API key and click it, your creatives' details are sent to Anthropic to write the summary. See the <a href="privacy.html">privacy page</a>.</p></details>
+    <details><summary>Do I need to sign up?</summary><p>No. Open Umbra and start. Because there are no accounts yet, your saved analyses live in one browser on one computer. Use Export backup in the Library to keep a copy.</p></details>
+    <details><summary>How many posts do I need?</summary><p>At least 4 to run it, 8 or more to see anything useful, and about 30 before patterns are worth acting on. Umbra tells you which of these you're at.</p></details>
+    <details><summary>Does it watch my videos?</summary><p>No. You describe each post (format, hook, length and so on) and Umbra compares those details against the results.</p></details>
+    <details><summary>Can it pull data from Instagram or TikTok automatically?</summary><p>Not yet. Most creator platforms and agencies can export a spreadsheet, and Umbra imports that. Automatic connections are on the roadmap.</p></details>
+  </section>
+
+  <footer>
+    <a href="app.html">Open Umbra</a><a href="sample-report.html">Sample report</a><a href="privacy.html">Privacy</a>
+    <p>Umbra is in early access. Results describe the posts you enter; they don't predict the future or prove cause and effect.</p>
+  </footer>
+</div>
+<script>
+// Paste your waitlist form link (Tally, Google Forms...) between the quotes. Until then, the waitlist buttons stay hidden.
+var WAITLIST_LINK = "";
+if (/^https:\/\//.test(WAITLIST_LINK)) {
+  Array.prototype.forEach.call(document.querySelectorAll(".waitlist"), function (el) {
+    el.hidden = false;
+    if (el.hasAttribute("data-waitlist")) { el.href = WAITLIST_LINK; el.target = "_blank"; el.rel = "noopener"; }
+  });
+}
+</script>
+</body>
+</html>

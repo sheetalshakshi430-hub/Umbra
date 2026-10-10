@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Umbra privacy</title>
+<style>
+  :root { --bg: #ffffff; --fg: #111111; --muted: #555555; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141414; --fg: #eeeeee; --muted: #aaaaaa; color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg: #141414; --fg: #eeeeee; --muted: #aaaaaa; color-scheme: dark; }
+  body { background: var(--bg); color: var(--fg); font-family: Arial, Helvetica, sans-serif; font-size: 17px; line-height: 1.55; max-width: 720px; margin: 0 auto; padding: 16px; }
+  a { color: inherit; }
+  .note { color: var(--muted); }
+</style>
+</head>
+<body>
+<p><a href="index.html">&larr; Umbra</a></p>
+<h1>Privacy</h1>
+<p class="note">Plain-English summary for Umbra's early-access version. Last updated October 2026.</p>
+<h2>What Umbra stores</h2>
+<p>The creatives you type or import, your settings and your saved analyses are stored in your own browser on your own computer (the browser's "local storage"). They are not sent to us, and we cannot see them.</p>
+<p>Clearing your browser's data deletes them. Use <b>Export backup</b> in the Library to keep a copy.</p>
+<h2>The optional AI write-up</h2>
+<p>If you add your own Claude API key and click <b>Write it up with Claude</b>, Umbra sends the analysis (including your creatives' descriptions and results) directly from your browser to Anthropic to write the summary. That is covered by your agreement with Anthropic. If you tick "Remember", your key is stored in your browser only.</p>
+<p>Don't use the AI write-up on client data unless your client agreement allows sharing it with an AI provider.</p>
+<h2>The waitlist</h2>
+<p>If you join the waitlist, the form provider collects what you enter (usually your name and email). We use it only to tell you about Umbra.</p>
+<h2>Hosting</h2>
+<p>This website is hosted on Vercel, which, like any web host, may keep basic technical logs such as IP addresses.</p>
+<p class="note">This page is a plain summary, not legal advice. Before Umbra stores client data on its own servers, it will get a full privacy policy and terms.</p>
+</body>
+</html>
